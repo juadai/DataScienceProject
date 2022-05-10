@@ -1,0 +1,117 @@
+---
+title: "CWD_visualization"
+output: word_document
+---
+
+## Import data
+```{r}
+CWDdata=read.csv("~/Documents/Data Science sem 2/Group project 1/preprocessed data/CWD.csv")
+treatment=CWDdata[9,3:14]
+#convert factor columns into numerical
+CWDdata[,3:14]=apply(CWD[,3:14], 2, function(x) as.numeric(as.character(x)))
+#convert types of treatments into numerical
+#1=T1, 2=T2, 3=Control
+CWDdata[9:10,3:14]=c(1,1,3,3,2,2,3,3,2,2,3,3,2,2,1,1,2,2,1,1,3,3,1,1)
+show(CWDdata)
+```
+
+## Calculate the changes (excluding plot 3 and 12) 
+```{r}
+log_change=CWDdata[5,3:13][,-3]-CWDdata[1,3:13][,-3]
+log_change
+pc_logchange=log_change*100/CWDdata[1,3:13][,-3]
+pc_logchange
+
+biglog_change=CWDdata[6,3:13][,-3]-CWDdata[2,3:13][,-3]
+biglog_change
+pc_biglogchange=biglog_change*100/CWDdata[2,3:13][,-3]
+pc_biglogchange
+
+stump_change=CWDdata[7,3:13][,-3]-CWDdata[3,3:13][,-3]
+stump_change
+pc_stumpchange=stump_change*100/CWDdata[3,3:13][,-3]
+pc_stumpchange
+
+total_change=CWDdata[8,3:13][,-3]-CWDdata[4,3:13][,-3]
+total_change
+pc_totalchange=total_change*100/CWDdata[4,3:13][,-3]
+pc_totalchange
+```
+
+## scatter plots comparing the percentage changes between different plots  
+Logs
+```{r}
+plot(c(1,2,4,5,6,7,8,9,10,11),pc_logchange, xlab="plot number", ylab="percentage change of number of logs", col=c(4,6,6,2,6,2,4,2,4,6), pch=19)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+# look closer
+plot(c(2,4,5,6,7,8,9),pc_logchange[c(2:8)], xlab="plot number", ylab="percentage change of number of logs", col=c(6,6,2,6,2,4,2), pch=19)
+legend("topleft", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+```
+
+Big logs (>40 cm)
+```{r}
+plot(c(1,2,4,5,6,7,8,9,10,11),pc_biglogchange, xlab="plot number", ylab="percentage change of number of logs (> 40 cm)", col=c(4,6,6,2,6,2,4,2,4,6), pch=19)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+# look closer
+plot(c(2,4,6,7,8,9,10,11),pc_biglogchange[2:10][-3], xlab="plot number", ylab="percentage change of number of logs (> 40 cm)", col=c(6,6,6,2,4,2,4,6), pch=19)
+legend("bottomleft", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+```
+
+Stumps
+```{r}
+plot(c(1,2,4,5,6,7,8,9,10,11),pc_stumpchange, xlab="plot number", ylab="percentage change of number of stumps", col=c(4,6,6,2,6,2,4,2,4,6), pch=19)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+```
+
+Total
+```{r}
+plot(c(1,2,4,5,6,7,8,9,10,11),pc_totalchange, xlab="plot number", ylab="percentage change of total CWD", col=c(4,6,6,2,6,2,4,2,4,6), pch=19)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+# look closer
+plot(c(2,4,5,6,7,8,9,10,11),pc_totalchange[2:10], xlab="plot number", ylab="percentage change of total CWD", col=c(6,6,2,6,2,4,2,4,6), pch=19)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 19)
+```
+
+## box plots comparing the percentage changes between different plots
+Logs
+```{r}
+df_pc_log=as.data.frame(c(as.vector(t(pc_logchange))))
+colnames(df_pc_log)=c("log_change")
+df_pc_log$treatment=c("Gap","Control","Control","Radial","Control","Radial","Gap","Radial","Gap","Control")
+df_pc_log
+
+boxplot(df_pc_log$log_change~df_pc_log$treatment, xlab="treatment",ylab="percentage change of logs")
+```
+
+Big logs
+```{r}
+df_pc_biglog=as.data.frame(c(as.vector(t(pc_biglogchange))))
+colnames(df_pc_biglog)=c("biglog_change")
+df_pc_biglog$treatment=c("Gap","Control","Control","Radial","Control","Radial","Gap","Radial","Gap","Control")
+df_pc_biglog
+
+boxplot(df_pc_biglog$biglog_change~df_pc_biglog$treatment, xlab="treatment",ylab="percentage change of big logs")
+#try removing plot 1
+boxplot(df_pc_biglog$biglog_change[2:10]~df_pc_biglog$treatment[2:10], xlab="treatment",ylab="percentage change of big logs")
+```
+
+Stumps
+```{r}
+df_pc_stump=as.data.frame(c(as.vector(t(pc_stumpchange))))
+colnames(df_pc_stump)=c("stump_change")
+df_pc_stump$treatment=c("Gap","Control","Control","Radial","Control","Radial","Gap","Radial","Gap","Control")
+df_pc_stump
+
+boxplot(df_pc_stump$stump_change~df_pc_stump$treatment, xlab="treatment",ylab="percentage change of stumps")
+```
+
+Total
+```{r}
+df_pc_total=as.data.frame(c(as.vector(t(pc_totalchange))))
+colnames(df_pc_total)=c("total_change")
+df_pc_total$treatment=c("Gap","Control","Control","Radial","Control","Radial","Gap","Radial","Gap","Control")
+df_pc_total
+
+boxplot(df_pc_total$total_change~df_pc_total$treatment, xlab="treatment",ylab="total percentage changes")
+```
+
