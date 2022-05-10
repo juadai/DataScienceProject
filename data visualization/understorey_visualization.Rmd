@@ -1,0 +1,327 @@
+---
+title: "understorey_visualisation"
+output: word_document
+---
+
+## Import data
+```{r}
+USdata=read.csv("~/Documents/Data Science sem 2/Group project 1/preprocessed data/understoreydata2020.csv")
+head(USdata,10)
+```
+
+## Initial data exploration
+```{r}
+library(dplyr)
+#which plots have fenced quadrats?
+Which=USdata[USdata$Quadrat_fenced=='True',]
+unique(Which$Plot_number)
+
+#which quadrants are fenced? 
+Whichq_4=USdata[USdata$Quadrat_fenced=='True'& USdata$Plot_number==4,]
+unique(Whichq_4$Quadrat_number) #quadrant 4 is confusing 
+
+Whichq_7=USdata[USdata$Quadrat_fenced=='True'& USdata$Plot_number==7,]
+unique(Whichq_7$Quadrat_number)
+
+Whichq_9=USdata[USdata$Quadrat_fenced=='True'& USdata$Plot_number==9,]
+unique(Whichq_9$Quadrat_number)
+
+Whichq_10=USdata[USdata$Quadrat_fenced=='True'& USdata$Plot_number==10,]
+unique(Whichq_10$Quadrat_number)
+
+Whichq_11=USdata[USdata$Quadrat_fenced=='True'& USdata$Plot_number==11,]
+unique(Whichq_11$Quadrat_number)
+
+Whichq_12=USdata[USdata$Quadrat_fenced=='True'& USdata$Plot_number==12,]
+unique(Whichq_12$Quadrat_number)
+```
+
+## Count number of species in each quadrat each year
+*For some specific quadrat in specific plot, the same species was recorded more than once with different score. Not sure what this means? Below, we will count all of them  
+
+Unfenced
+*We have already found which quadrats in each plot were fenced. Ideally, we would specify j as the quadrat numbers which were unfenced. However, due to some confusing data here (some specific quadrats in the same plot were recorded as fenced and unfenced at the same time), we will just specify j as all quadrats for now (1:32).
+*Therefore, 0 will mean that the specific quadrat is fenced
+```{r}
+Year0uf_count=c()
+for (i in 1:12)
+  {for (j in 1:32)
+    {a=nrow(USdata[USdata$Year_monitoring==0 & USdata$Quadrat_fenced=='False' & USdata$Plot_number==i & USdata$Quadrat_number==j,])
+    Year0uf_count=append(Year0uf_count,a)
+    }
+  }
+Year0uf_count
+
+Year3uf_count=c()
+for (i in 1:12)
+  {for (j in 1:32)
+    {a=nrow(USdata[USdata$Year_monitoring==3 & USdata$Quadrat_fenced=='False' & USdata$Plot_number==i & USdata$Quadrat_number==j,])
+    Year3uf_count=append(Year3uf_count,a)
+    }
+  }
+Year3uf_count
+#we can see that there's no data for plot 3 in year 3
+#plot 4 is also really confusing (some quadrat are both fenced/unfenced at the same time?!)
+
+Year6uf_count=c()
+for (i in 1:12)
+  {for (j in 1:32)
+    {a=nrow(USdata[USdata$Year_monitoring==6 & USdata$Quadrat_fenced=='False' & USdata$Plot_number==i & USdata$Quadrat_number==j,])
+    Year6uf_count=append(Year6uf_count,a)
+    }
+  }
+Year6uf_count
+```
+
+Fenced
+*0 will mean that the specific quadrat is unfenced
+```{r}
+Year0f_count=c()
+for (i in c(4,7,9,10,11,12))
+  {for (j in 1:32)
+    {a=nrow(USdata[USdata$Year_monitoring==0 & USdata$Quadrat_fenced=='True' & USdata$Plot_number==i & USdata$Quadrat_number==j,])
+    Year0f_count=append(Year0f_count,a)
+    }
+  }
+Year0f_count
+
+Year3f_count=c()
+for (i in c(4,7,9,10,11,12))
+  {for (j in 1:32)
+    {a=nrow(USdata[USdata$Year_monitoring==3 & USdata$Quadrat_fenced=='True' & USdata$Plot_number==i & USdata$Quadrat_number==j,])
+    Year3f_count=append(Year3f_count,a)
+    }
+  }
+Year3f_count
+
+Year6f_count=c()
+for (i in c(4,7,9,10,11,12))
+  {for (j in 1:32)
+    {a=nrow(USdata[USdata$Year_monitoring==6 & USdata$Quadrat_fenced=='True' & USdata$Plot_number==i & USdata$Quadrat_number==j,])
+    Year6f_count=append(Year6f_count,a)
+    }
+  }
+Year6f_count
+```
+
+## Calculate the change in number of species
+*Just an idea of how we would normally do it. The results below are likely to contain a lot of errors due to missing and overlapping data
+Unfenced
+```{r}
+uf_30=Year3uf_count-Year0uf_count
+uf_30
+
+uf_63=Year6uf_count-Year3uf_count
+uf_63
+
+uf_60=Year6uf_count-Year0uf_count
+uf_60
+```
+
+Fenced
+*Just an idea of how we would normally do it. The results below are likely to contain a lot of errors due to missing and overlapping data
+```{r}
+f_30=Year3f_count-Year0f_count
+f_30
+
+f_63=Year6f_count-Year3f_count
+f_63
+
+f_60=Year6f_count-Year0f_count
+f_60
+```
+
+#Plots to compare the change in species number 
+Note
+T1: plot 1,8,10,12
+T2: plot 3,5,7,9
+Control: plot 2,4,6,11
+
+Unfenced quadrats with different treatments
+```{r}
+plot(uf_30, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,32", ylab="change in number of species from Y0 to Y3 (unfenced)", col=c(rep(4,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(4,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(uf_63, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,32", ylab="change in number of species from Y3 to Y6 (unfenced)", col=c(rep(4,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(4,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(uf_60, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,32", ylab="change in number of species from Y0 to Y6 (unfenced)", col=c(rep(4,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(4,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+```
+
+Fenced quadrats with different treatments
+```{r}
+plot(f_30, xlab="quadrats 1-32 for plot 4,7,9,10,11,12 respectively", ylab="change in number of species from Y0 to Y3 (fenced)", col=c(rep(6,32),rep(2,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(f_63, xlab="quadrats 1-32 for plot 4,7,9,10,11,12 respectively", ylab="change in number of species from Y3 to Y6 (fenced)", col=c(rep(6,32),rep(2,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("topright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(f_60, xlab="quadrats 1-32 for plot 4,7,9,10,11,12 respectively", ylab="change in number of species from Y0 to Y6 (fenced)", col=c(rep(6,32),rep(2,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+```
+
+Compare fenced vs unfenced quadrats in plot 4,7,9,10,11,12
+*Again, might not be correct due to overlapping data
+*Treat even quadrats as fenced, odd quadrats as unfenced 
+```{r}
+quads_30=uf_30[c(97:128,193:224,257:384)] #all quadrats from plot 4,7,9,10,11,12
+f_uf_30=as.data.frame(c(f_30[seq(0, length(f_30), 2)],quads_30[seq(1, length(quads_30), 2)]))
+colnames(f_uf_30)=c("change in number of species")
+f_uf_30$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(16,16))
+f_uf_30
+boxplot(f_uf_30$`change in number of species`~f_uf_30$fencedVSunfenced, xlab="method", ylab="change in number of species from Y0 to Y3")
+
+quads_63=uf_63[c(97:128,193:224,257:384)] #all quadrats from plot 4,7,9,10,11,12
+f_uf_63=as.data.frame(c(f_63[seq(0, length(f_63), 2)],quads_63[seq(1, length(quads_63), 2)]))
+colnames(f_uf_63)=c("change in number of species")
+f_uf_63$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(16,16))
+f_uf_63
+boxplot(f_uf_63$`change in number of species`~f_uf_63$fencedVSunfenced, xlab="method", ylab="change in number of species from Y3 to Y6")
+
+quads_60=uf_60[c(97:128,193:224,257:384)] #all quadrats from plot 4,7,9,10,11,12
+f_uf_60=as.data.frame(c(f_60[seq(0, length(f_60), 2)],quads_60[seq(1, length(quads_60), 2)]))
+colnames(f_uf_60)=c("change in number of species")
+f_uf_60$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(16,16))
+f_uf_60
+boxplot(f_uf_60$`change in number of species`~f_uf_60$fencedVSunfenced, xlab="method", ylab="change in number of species from Y0 to Y6")
+```
+
+## Calculate the sum of scores in each quadrat 
+Unfenced
+```{r}
+Year0uf_scores=c()
+for (i in 1:12)
+  {for (j in 1:32)
+    {a=sum(USdata[USdata$Year_monitoring==0 & USdata$Quadrat_fenced=='False' & USdata$Plot_number==i & USdata$Quadrat_number==j,]$Score)
+    Year0uf_scores=append(Year0uf_scores,a)
+    }
+  }
+Year0uf_scores
+
+Year3uf_scores=c()
+for (i in 1:12)
+  {for (j in 1:32)
+    {a=sum(USdata[USdata$Year_monitoring==3 & USdata$Quadrat_fenced=='False' & USdata$Plot_number==i & USdata$Quadrat_number==j,]$Score)
+    Year3uf_scores=append(Year3uf_scores,a)
+    }
+  }
+Year3uf_scores
+
+Year6uf_scores=c()
+for (i in 1:12)
+  {for (j in 1:32)
+    {a=sum(USdata[USdata$Year_monitoring==6 & USdata$Quadrat_fenced=='False' & USdata$Plot_number==i & USdata$Quadrat_number==j,]$Score)
+    Year6uf_scores=append(Year6uf_scores,a)
+    }
+  }
+Year6uf_scores
+```
+
+Fenced
+```{r}
+Year0f_scores=c()
+for (i in c(4,7,9,10,11,12))
+  {for (j in 1:32)
+    {a=sum(USdata[USdata$Year_monitoring==0 & USdata$Quadrat_fenced=='True' & USdata$Plot_number==i & USdata$Quadrat_number==j,]$Score)
+    Year0f_scores=append(Year0f_scores,a)
+    }
+  }
+Year0f_scores
+
+Year3f_scores=c()
+for (i in c(4,7,9,10,11,12))
+  {for (j in 1:32)
+    {a=sum(USdata[USdata$Year_monitoring==3 & USdata$Quadrat_fenced=='True' & USdata$Plot_number==i & USdata$Quadrat_number==j,]$Score)
+    Year3f_scores=append(Year3f_scores,a)
+    }
+  }
+Year3f_scores
+
+Year6f_scores=c()
+for (i in c(4,7,9,10,11,12))
+  {for (j in 1:32)
+    {a=sum(USdata[USdata$Year_monitoring==6 & USdata$Quadrat_fenced=='True' & USdata$Plot_number==i & USdata$Quadrat_number==j,]$Score)
+    Year6f_scores=append(Year6f_scores,a)
+    }
+  }
+Year6f_scores
+```
+
+## Calculate the score changes in each quadrat
+*Just an idea of how we would normally do it. The results below are likely to contain a lot of errors due to missing and overlapping data
+Unfenced
+```{r}
+uf_score_30=Year3uf_scores-Year0uf_scores
+uf_score_30
+
+uf_score_63=Year6uf_scores-Year3uf_scores
+uf_score_63
+
+uf_score_60=Year6uf_scores-Year0uf_scores
+uf_score_60
+```
+
+Fenced
+```{r}
+f_score_30=Year3f_scores-Year0f_scores
+f_score_30
+
+f_score_63=Year6f_scores-Year3f_scores
+f_score_63
+
+f_score_60=Year6f_scores-Year0f_scores
+f_score_60
+```
+
+#Plots to compare the change in scores
+Unfenced quadrats with different treatments
+```{r}
+plot(uf_score_30, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,32", ylab="change in scores from Y0 to Y3 (unfenced)", col=c(rep(4,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(4,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(uf_score_63, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,32", ylab="change in scores from Y3 to Y6 (unfenced)", col=c(rep(4,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(4,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(uf_score_60, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,32", ylab="change in scores from Y0 to Y6 (unfenced)", col=c(rep(4,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(6,32),rep(2,32),rep(4,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+```
+
+Fenced quadrats with different treatments
+```{r}
+plot(f_score_30, xlab="quadrats 1-32 for plot 4,7,9,10,11,12 respectively", ylab="change in score from Y0 to Y3 (fenced)", col=c(rep(6,32),rep(2,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(f_score_63, xlab="quadrats 1-32 for plot 4,7,9,10,11,12 respectively", ylab="change in scores from Y3 to Y6 (fenced)", col=c(rep(6,32),rep(2,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottomright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+
+plot(f_score_60, xlab="quadrats 1-32 for plot 4,7,9,10,11,12 respectively", ylab="change in scores from Y0 to Y6 (fenced)", col=c(rep(6,32),rep(2,32),rep(2,32),rep(4,32),rep(6,32),rep(4,32)), pch=18)
+legend("bottomright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
+```
+
+Compare fenced vs unfenced quadrats in plot 4,7,9,10,11,12
+*Again, might not be correct due to overlapping data
+*Treat even quadrats as fenced, odd quadrats as unfenced 
+```{r}
+quads_score_30=uf_score_30[c(97:128,193:224,257:384)] #all quadrats from plot 4,7,9,10,11,12
+f_uf_score_30=as.data.frame(c(f_score_30[seq(0, length(f_score_30), 2)],quads_score_30[seq(1, length(quads_score_30), 2)]))
+colnames(f_uf_score_30)=c("change in score")
+f_uf_score_30$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(16,16))
+f_uf_score_30
+boxplot(f_uf_score_30$`change in score`~f_uf_score_30$fencedVSunfenced, xlab="method", ylab="change in score from Y0 to Y3")
+ 
+quads_score_63=uf_score_63[c(97:128,193:224,257:384)] #all quadrats from plot 4,7,9,10,11,12
+f_uf_score_63=as.data.frame(c(f_score_63[seq(0, length(f_score_63), 2)],quads_score_63[seq(1, length(quads_score_63), 2)]))
+colnames(f_uf_score_63)=c("change in score")
+f_uf_score_63$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(16,16))
+f_uf_score_63
+boxplot(f_uf_score_63$`change in score`~f_uf_score_63$fencedVSunfenced, xlab="method", ylab="change in score from Y3 to Y6")
+
+quads_score_60=uf_score_60[c(97:128,193:224,257:384)] #all quadrats from plot 4,7,9,10,11,12
+f_uf_score_60=as.data.frame(c(f_score_60[seq(0, length(f_score_60), 2)],quads_score_60[seq(1, length(quads_score_60), 2)]))
+colnames(f_uf_score_60)=c("change in score")
+f_uf_score_60$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(16,16))
+f_uf_score_60
+boxplot(f_uf_score_60$`change in score`~f_uf_score_60$fencedVSunfenced, xlab="method", ylab="change in score from Y0 to Y6")
+```
+
