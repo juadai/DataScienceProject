@@ -5,7 +5,7 @@ output: word_document
 
 ## Import data
 ```{r}
-USdata=read.csv("~/Documents/Data Science sem 2/Group project 1/preprocessed data/understoreydata2020.csv")
+USdata=read.csv("/Users/nickjolly/Desktop/tfn/DataScienceProject/preprocessed data/understoreydata2020.csv")
 head(USdata,10)
 ```
 
