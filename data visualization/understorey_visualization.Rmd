@@ -151,7 +151,7 @@ Control: plot 2,4,6,11
 
 Unfenced quadrats with different treatments
 ```{r}
-plot(uf_30, xlab="plot and quadrat number (i*j) where i=1 to 12 (excluding 3) and j=1,..,16", ylab="change in number of species from Y0 to Y3 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
+plot(uf_30, xlab="16 unfenced quadrats for each plot, 1 to 12, excluding plot 3", ylab="change in number of species", main="Change in number of species from Y0 to Y3 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -159,9 +159,9 @@ treatments_30=as.data.frame(uf_30)
 colnames(treatments_30)=c("change in number of species")
 treatments_30$treatment=c(rep("T1",16),rep("Control",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("T1",16),rep("T2",16),rep("T1",16),rep("Control",16),rep("T1",16))
 treatments_30
-boxplot(treatments_30$`change in number of species`~treatments_30$treatment, xlab="treatment", ylab="change in number of species from Y0 to Y3 (unfenced)")
+boxplot(treatments_30$`change in number of species`~treatments_30$treatment, xlab="treatment", ylab="change in number of species", main="Change in number of species from Y0 to Y3 (unfenced)")
 
-plot(uf_63, xlab="plot and quadrat number (i*j) where i=1 to 12 (excluding 3) and j=1,..,16", ylab="change in number of species from Y3 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
+plot(uf_63, xlab="16 unfenced quadrats for each plot, 1 to 12, excluding plot 3", ylab="change in number of species", main="Change in number of species from Y3 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -169,9 +169,9 @@ treatments_63=as.data.frame(uf_63)
 colnames(treatments_63)=c("change in number of species")
 treatments_63$treatment=c(rep("T1",16),rep("Control",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("T1",16),rep("T2",16),rep("T1",16),rep("Control",16),rep("T1",16))
 treatments_63
-boxplot(treatments_63$`change in number of species`~treatments_63$treatment, xlab="treatment", ylab="change in number of species from Y3 to Y6 (unfenced)")
+boxplot(treatments_63$`change in number of species`~treatments_63$treatment, xlab="treatment", ylab="change in number of species", main="Change in number of species from Y3 to Y6 (unfenced)")
 
-plot(uf_60, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,16", ylab="change in number of species from Y0 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
+plot(uf_60, xlab="16 unfenced quadrats for each plot, 1 to 12", ylab="change in number of species", main="Change in number of species from Y0 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottomright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -179,12 +179,12 @@ treatments_60=as.data.frame(uf_60)
 colnames(treatments_60)=c("change in number of species")
 treatments_60$treatment=c(rep("T1",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("T1",16),rep("T2",16),rep("T1",16),rep("Control",16),rep("T1",16))
 treatments_60
-boxplot(treatments_60$`change in number of species`~treatments_60$treatment, xlab="treatment", ylab="change in number of species from Y0 to Y6 (unfenced)")
+boxplot(treatments_60$`change in number of species`~treatments_60$treatment, xlab="treatment", ylab="change in number of species", main="Change in number of species from Y0 to Y6 (unfenced)")
 ```
 
 Fenced quadrats with different treatments
 ```{r}
-plot(f_30, xlab="16 quadrats for plot 7,9,10,12 respectively", ylab="change in number of species from Y0 to Y3 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
+plot(f_30, xlab="16 fenced quadrats for plot 7,9,10,12 respectively", ylab="change in number of species", main="Change in number of species from Y0 to Y3 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -192,9 +192,9 @@ treatments_30_f=as.data.frame(f_30)
 colnames(treatments_30_f)=c("change in number of species")
 treatments_30_f$treatment=c(rep("T2",32),rep("T1",32))
 treatments_30_f
-boxplot(treatments_30_f$`change in number of species`~treatments_30_f$treatment, xlab="treatment", ylab="change in number of species from Y0 to Y3 (fenced)")
+boxplot(treatments_30_f$`change in number of species`~treatments_30_f$treatment, xlab="treatment", ylab="change in number of species", main="Change in number of species from Y0 to Y3 (fenced)")
 
-plot(f_63, xlab="16 quadrats for plot 7,9,10,12 respectively", ylab="change in number of species from Y3 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
+plot(f_63, xlab="16 fenced quadrats for plot 7,9,10,12 respectively", ylab="change in number of species", main="Change in number of species from Y3 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("topright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -202,9 +202,9 @@ treatments_63_f=as.data.frame(f_63)
 colnames(treatments_63_f)=c("change in number of species")
 treatments_63_f$treatment=c(rep("T2",32),rep("T1",32))
 treatments_63_f
-boxplot(treatments_63_f$`change in number of species`~treatments_63_f$treatment, xlab="treatment", ylab="change in number of species from Y3 to Y6 (fenced)")
+boxplot(treatments_63_f$`change in number of species`~treatments_63_f$treatment, xlab="treatment", ylab="change in number of species", main="Change in number of species from Y3 to Y6 (fenced)")
 
-plot(f_60, xlab="16 quadrats for plot 7,9,10,12 respectively", ylab="change in number of species from Y0 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
+plot(f_60, xlab="16 fenced quadrats for plot 7,9,10,12 respectively", ylab="change in number of species", main="Change in number of species from Y0 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -212,7 +212,7 @@ treatments_60_f=as.data.frame(f_60)
 colnames(treatments_60_f)=c("change in number of species")
 treatments_60_f$treatment=c(rep("T2",32),rep("T1",32))
 treatments_60_f
-boxplot(treatments_60_f$`change in number of species`~treatments_60_f$treatment, xlab="treatment", ylab="change in number of species from Y0 to Y6 (fenced)")
+boxplot(treatments_60_f$`change in number of species`~treatments_60_f$treatment, xlab="treatment", ylab="change in number of species", main="Change in number of species from Y0 to Y6 (fenced)")
 ```
 
 Compare fenced vs unfenced quadrats in plot 7,9,10,12
@@ -221,19 +221,19 @@ f_uf_30=as.data.frame(c(f_30,uf_30[c(81:96,113:128,129:144,161:176)])) #quadrats
 colnames(f_uf_30)=c("change in number of species")
 f_uf_30$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(64,64))
 f_uf_30
-boxplot(f_uf_30$`change in number of species`~f_uf_30$fencedVSunfenced, xlab="method", ylab="change in number of species from Y0 to Y3")
+boxplot(f_uf_30$`change in number of species`~f_uf_30$fencedVSunfenced, xlab="method", ylab="change in number of species", main="Change in number of species from Y0 to Y3")
 
 f_uf_63=as.data.frame(c(f_63,uf_63[c(81:96,113:128,129:144,161:176)]))
 colnames(f_uf_63)=c("change in number of species")
 f_uf_63$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(64,64))
 f_uf_63
-boxplot(f_uf_63$`change in number of species`~f_uf_63$fencedVSunfenced, xlab="method", ylab="change in number of species from Y3 to Y6")
+boxplot(f_uf_63$`change in number of species`~f_uf_63$fencedVSunfenced, xlab="method", ylab="change in number of species", main="Change in number of species from Y3 to Y6")
 
 f_uf_60=as.data.frame(c(f_60,uf_60[c(97:112,129:144,145:160,177:192)]))
 colnames(f_uf_60)=c("change in number of species")
 f_uf_60$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(64,64))
 f_uf_60
-boxplot(f_uf_60$`change in number of species`~f_uf_60$fencedVSunfenced, xlab="method", ylab="change in number of species from Y0 to Y6")
+boxplot(f_uf_60$`change in number of species`~f_uf_60$fencedVSunfenced, xlab="method", ylab="change in number of species", main="Change in number of species from Y0 to Y6")
 ```
 
 ## Calculate the sum of scores in each quadrat 
@@ -288,7 +288,6 @@ Year6uf_scores
 
 Fenced
 ```{r}
-
 Year0f_scores=c()
 for (i in c(7,9,10,12))
   {for (j in seq(2,32,2))
@@ -343,7 +342,7 @@ f_score_60
 #Plots to compare the change in scores
 Unfenced quadrats with different treatments
 ```{r}
-plot(uf_score_30, xlab="plot and quadrat number (i*j) where i=1 to 12 (excluding 3) and j=1,..,16", ylab="change in scores from Y0 to Y3 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
+plot(uf_score_30, xlab="16 unfenced quadrats for each plot, 1 to 12, excluding plot 3", ylab="change in sum of scores", main="Change in sum of scores from Y0 to Y3 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("top", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -351,9 +350,9 @@ treatment_score_30=as.data.frame(c(uf_score_30))
 colnames(treatment_score_30)=c("change in score")
 treatment_score_30$treatment=c(rep("T1",16),rep("Control",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("T1",16),rep("T2",16),rep("T1",16),rep("Control",16),rep("T1",16))
 treatment_score_30
-boxplot(treatment_score_30$`change in score`~treatment_score_30$treatment, xlab="treatment", ylab="change in score from Y0 to Y3 (unfenced)")
+boxplot(treatment_score_30$`change in score`~treatment_score_30$treatment, xlab="treatment", ylab="change in sum of score", main="Change in sum of scores from Y0 to Y3 (unfenced)")
 
-plot(uf_score_63, xlab="plot and quadrat number (i*j) where i=1 to 12 (excluding 3) and j=1,..,16", ylab="change in scores from Y3 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
+plot(uf_score_63, xlab="16 unfenced quadrats for each plot, 1 to 12, excluding plot 3", ylab="change in sum of scores", main="Change in sum of scores from Y3 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottom", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -361,9 +360,9 @@ treatment_score_63=as.data.frame(c(uf_score_63))
 colnames(treatment_score_63)=c("change in score")
 treatment_score_63$treatment=c(rep("T1",16),rep("Control",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("T1",16),rep("T2",16),rep("T1",16),rep("Control",16),rep("T1",16))
 treatment_score_63
-boxplot(treatment_score_63$`change in score`~treatment_score_63$treatment, xlab="treatment", ylab="change in score from Y3 to Y6 (unfenced)")
+boxplot(treatment_score_63$`change in score`~treatment_score_63$treatment, xlab="treatment", ylab="change in sum of score", main="Change in sum of scores from Y3 to Y6 (unfenced)")
 
-plot(uf_score_60, xlab="plot and quadrat number (i*j) where i=1,...,12 and j=1,..,16", ylab="change in scores from Y0 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
+plot(uf_score_60, xlab="16 unfenced quadrats for each plot, 1 to 12", ylab="change in sum of scores", main="Change in sum of scores from Y0 to Y6 (unfenced)", col=c(rep(4,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(6,16),rep(2,16),rep(4,16),rep(2,16),rep(4,16),rep(6,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottomleft", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -371,12 +370,12 @@ treatment_score_60=as.data.frame(c(uf_score_60))
 colnames(treatment_score_60)=c("change in score")
 treatment_score_60$treatment=c(rep("T1",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("Control",16),rep("T2",16),rep("T1",16),rep("T2",16),rep("T1",16),rep("Control",16),rep("T1",16))
 treatment_score_60
-boxplot(treatment_score_60$`change in score`~treatment_score_60$treatment, xlab="treatment", ylab="change in score from Y0 to Y6 (unfenced)")
+boxplot(treatment_score_60$`change in score`~treatment_score_60$treatment, xlab="treatment", ylab="change in sum of score", main="Change in sum of scores from Y0 to Y6 (unfenced)")
 ```
 
 Fenced quadrats with different treatments
 ```{r}
-plot(f_score_30, xlab="quadrats 1-16 for plot 7,9,10,12 respectively", ylab="change in score from Y0 to Y3 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
+plot(f_score_30, xlab="16 fenced quadrats for plot 7,9,10,12 respectively", ylab="change in sum of scores", main="Change in sum of scores from Y0 to Y3 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottomright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -384,9 +383,9 @@ treatment_score_30_f=as.data.frame(c(f_score_30))
 colnames(treatment_score_30_f)=c("change in score")
 treatment_score_30_f$treatment=c(rep("T2",32),rep("T1",32))
 treatment_score_30_f
-boxplot(treatment_score_30_f$`change in score`~treatment_score_30_f$treatment, xlab="treatment", ylab="change in score from Y0 to Y3 (fenced)")
+boxplot(treatment_score_30_f$`change in score`~treatment_score_30_f$treatment, xlab="treatment",ylab="change in sum of score", main="Change in sum of scores from Y0 to Y3 (fenced)")
 
-plot(f_score_63, xlab="quadrats 1-16 for plot 7,9,10,12 respectively", ylab="change in scores from Y3 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
+plot(f_score_63, xlab="16 fenced quadrats for plot 7,9,10,12 respectively", ylab="change in sum of scores", main="Change in sum of scores from Y3 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottomright", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -394,9 +393,9 @@ treatment_score_63_f=as.data.frame(c(f_score_63))
 colnames(treatment_score_63_f)=c("change in score")
 treatment_score_63_f$treatment=c(rep("T2",32),rep("T1",32))
 treatment_score_63_f
-boxplot(treatment_score_63_f$`change in score`~treatment_score_63_f$treatment, xlab="treatment", ylab="change in score from Y3 to Y6 (fenced)")
+boxplot(treatment_score_63_f$`change in score`~treatment_score_63_f$treatment, xlab="treatment",ylab="change in sum of score", main="Change in sum of scores from Y3 to Y6 (fenced)")
 
-plot(f_score_60, xlab="quadrats 1-16 for plot 7,9,10,12 respectively", ylab="change in scores from Y0 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
+plot(f_score_60, xlab="16 fenced quadrats for plot 7,9,10,12 respectively", ylab="change in sum of scores", main="Change in sum of scores from Y0 to Y6 (fenced)", col=c(rep(2,16),rep(2,16),rep(4,16),rep(4,16)), pch=18)
 abline(h=0, lty=2)
 legend("bottomleft", legend = paste(c("T1","T2","Control")), col = c(4,2,6), pch = 18)
 
@@ -404,7 +403,7 @@ treatment_score_60_f=as.data.frame(c(f_score_60))
 colnames(treatment_score_60_f)=c("change in score")
 treatment_score_60_f$treatment=c(rep("T2",32),rep("T1",32))
 treatment_score_60_f
-boxplot(treatment_score_60_f$`change in score`~treatment_score_60_f$treatment, xlab="treatment", ylab="change in score from Y0 to Y6 (fenced)")
+boxplot(treatment_score_60_f$`change in score`~treatment_score_60_f$treatment, xlab="treatment",ylab="change in sum of score", main="Change in sum of scores from Y0 to Y6 (fenced)")
 ```
 
 Compare fenced vs unfenced quadrats in plot 7,9,10,12
@@ -413,18 +412,18 @@ f_uf_score_30=as.data.frame(c(f_score_30,uf_score_30[c(81:96,113:128,129:144,161
 colnames(f_uf_score_30)=c("change in score")
 f_uf_score_30$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(64,64))
 f_uf_score_30
-boxplot(f_uf_score_30$`change in score`~f_uf_score_30$fencedVSunfenced, xlab="method", ylab="change in score from Y0 to Y3")
+boxplot(f_uf_score_30$`change in score`~f_uf_score_30$fencedVSunfenced, xlab="method", ylab="change in sum of scores", main="Change in sum of scores from Y0 to Y3")
  
 f_uf_score_63=as.data.frame(c(f_score_63,uf_score_63[c(81:96,113:128,129:144,161:176)]))
 colnames(f_uf_score_63)=c("change in score")
 f_uf_score_63$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(64,64))
 f_uf_score_63
-boxplot(f_uf_score_63$`change in score`~f_uf_score_63$fencedVSunfenced, xlab="method", ylab="change in score from Y3 to Y6")
+boxplot(f_uf_score_63$`change in score`~f_uf_score_63$fencedVSunfenced, xlab="method", ylab="change in sum of scores", main="Change in sum of scores from Y3 to Y6")
 
 f_uf_score_60=as.data.frame(c(f_score_60,uf_score_60[c(97:112,129:144,145:160,177:192)]))
 colnames(f_uf_score_60)=c("change in score")
 f_uf_score_60$fencedVSunfenced=rep(c("Fenced","Unfenced"),c(64,64))
 f_uf_score_60
-boxplot(f_uf_score_60$`change in score`~f_uf_score_60$fencedVSunfenced, xlab="method", ylab="change in score from Y0 to Y6")
+boxplot(f_uf_score_60$`change in score`~f_uf_score_60$fencedVSunfenced, xlab="method", ylab="change in sum of scores", main="Change in sum of scores from Y0 to Y6")
 ```
 
