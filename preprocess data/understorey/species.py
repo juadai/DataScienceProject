@@ -11,5 +11,5 @@ for s in list(s1['x'].values):
     print(s)
     i += 1
 
-print(i)
+print(i, "out of", len(s1), "species to be matched")
 
