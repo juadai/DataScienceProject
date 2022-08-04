@@ -50,7 +50,7 @@ def process(path):
     df_tree['Plot'] = plot
     df_tree['Treatment'] = TREATMENTS[plot]
 
-    # Iterate over year 0 and year 6 records, filling in the tree dataframe
+    # Iterate over year 0 records, filling in the tree dataframe
     for i in df_input_0['Tree Number']:
 
         try:
@@ -63,6 +63,9 @@ def process(path):
         except:
             print(i)
 
+    df_tree['Class year 0'] = pd.cut(df_tree['DBH year 0'], bins=[0, 10, 20, 30, 40, 50, 60, 70, 80], labels=[1, 2, 3, 4, 5, 6, 7, 8])
+    
+    # Iterate over year 6 records, filling in the tree dataframe
     for i in df_input_6['Tree Number']:
 
         try:
@@ -75,6 +78,10 @@ def process(path):
             df_tree.at[i, 'Hollows Class 3 year 6'] = df_input_6.loc[df_input_6['Tree Number']==i, 'Hollows Class 3'].item()
         except:
             print(i)
+
+    df_tree['Class year 6'] = pd.cut(df_tree['DBH year 6'], bins=[0, 10, 20, 30, 40, 50, 60, 70, 80], labels=[1, 2, 3, 4, 5, 6, 7, 8])
+
+    # Calculate 
 
     outpath = 'output/processed_'+str(plot)+'.csv'
     df_tree.to_csv(outpath)
