@@ -1,0 +1,250 @@
+---
+title: "Browsing exclusion_modelling"
+author: "Chayanit Jaroonsophonsak"
+date: "27/07/2022"
+output: word_document
+---
+
+Note: Only plots 7(T2), 9(T2), 10(T1), and 12(T1) have fenced quadrats. 
+So, we are only able to test the effect of browsing exclusion between these 2 treatments, but not the control
+
+Note2: even quadrats are fenced, odd quadrats are unfenced 
+
+# Import data
+```{r}
+data=read.csv("try_1.csv")
+head(data)
+focused_data=data[data$Plot_number %in% c(7,9,10,12),] #only retain data from plots 7,9,10,12
+
+Y0_data=focused_data[focused_data$Year_monitoring==0,]
+Y3_data=focused_data[focused_data$Year_monitoring==3,]
+Y6_data=focused_data[focused_data$Year_monitoring==6,]
+```
+
+# Species richness
+```{r}
+#calculate species richness in each quadrat each year 
+library(dplyr)
+Y0_rich=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y0_data[Y0_data$Plot_number==i & Y0_data$Quadrat_number==j,]
+    count_scientifname <- dataset %>% count(Scientific.Name)
+    a=nrow(count_scientifname)
+    Y0_rich=append(Y0_rich,a)
+  }
+}
+Y0_rich
+
+Y3_rich=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y3_data[Y3_data$Plot_number==i & Y3_data$Quadrat_number==j,]
+    count_scientifname <- dataset %>% count(Scientific.Name)
+    a=nrow(count_scientifname)
+    Y3_rich=append(Y3_rich,a)
+  }
+}
+Y3_rich
+
+Y6_rich=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y6_data[Y6_data$Plot_number==i & Y6_data$Quadrat_number==j,]
+    count_scientifname <- dataset %>% count(Scientific.Name)
+    a=nrow(count_scientifname) 
+    Y6_rich=append(Y6_rich,a)
+  }
+}
+Y6_rich
+
+#Calculate changes in species richness
+Y03_rich=Y3_rich-Y0_rich 
+Y03_rich 
+
+Y36_rich=Y6_rich-Y3_rich
+Y36_rich 
+
+#Generate a dataframe for the changes in species richness 
+Time=rep(c('0-3','3-6'),c(128,128))
+Plot_number=rep(rep(c(7,9,10,12),c(32,32,32,32)),2)
+Treatment=rep(rep(c("Radial","Gap"),c(64,64)),2)
+Quadrat_number=rep(seq(1,32,1),8)
+Quadrat_fenced=rep(c('False','True'),128)
+Richness_change=c(Y03_rich,Y36_rich)
+rich_df=data.frame(Time, Plot_number, Treatment, Quadrat_number, Quadrat_fenced, Richness_change)
+```
+
+# Species diversity (Shannon's diversity index)
+*First idea was to use (num of specific species)/(num of total unique species) but...
+* It seems to make more sense(?) if p is calculated by score(species i)/(total score in the quadrat)
+reference: http://www.bioline.org.br/pdf?st09043
+
+```{r}
+#Calculate Shannon's diversity index
+
+Y0_div=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y0_data[Y0_data$Plot_number==i & Y0_data$Quadrat_number==j,]
+    total_score=sum(dataset$Score)
+    p_scientifname <- dataset %>%
+    group_by(Scientific.Name) %>%
+    summarise(s = sum(Score)) 
+    p_scientifname$p=p_scientifname$s/total_score
+    a=-sum((p_scientifname$p)*log(p_scientifname$p))
+    Y0_div=append(Y0_div,a)
+  }
+}
+Y0_div
+
+Y3_div=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y3_data[Y3_data$Plot_number==i & Y3_data$Quadrat_number==j,]
+    total_score=sum(dataset$Score)
+    p_scientifname <- dataset %>%
+    group_by(Scientific.Name) %>%
+    summarise(s = sum(Score)) 
+    p_scientifname$p=p_scientifname$s/total_score
+    a=-sum((p_scientifname$p)*log(p_scientifname$p))
+    Y3_div=append(Y3_div,a)
+  }
+}
+Y3_div
+
+Y6_div=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y6_data[Y6_data$Plot_number==i & Y6_data$Quadrat_number==j,]
+    total_score=sum(dataset$Score)
+    p_scientifname <- dataset %>%
+    group_by(Scientific.Name) %>%
+    summarise(s = sum(Score)) 
+    p_scientifname$p=p_scientifname$s/total_score
+    a=-sum((p_scientifname$p)*log(p_scientifname$p))
+    Y6_div=append(Y6_div,a)
+  }
+}
+Y6_div
+
+# Calculate changes in species diversity
+Y03_div=Y3_div-Y0_div
+Y03_div
+
+Y36_div=Y6_div-Y3_div
+Y36_div
+
+#Generate a dataframe for the changes in species diversity
+Diversity_change=c(Y03_div,Y36_div)
+div_df=data.frame(Time, Plot_number, Treatment, Quadrat_number, Quadrat_fenced, Diversity_change)
+```
+
+# Relative abundance of species (Option1: Shannon's Equitability index = Evenness)
+```{r}
+# Calculate Shannon's Equitability index 
+Y0_even=Y0_div/log(Y0_rich)
+Y0_even
+
+Y3_even=Y3_div/log(Y3_rich)
+Y3_even
+
+Y6_even=Y6_div/log(Y6_rich)
+Y6_even
+
+# Calculate the change in evenness
+Y03_even=Y3_even-Y0_even
+Y03_even
+
+Y36_even=Y6_even-Y3_even
+Y36_even 
+
+#Generate a dataframe for the changes in evenness
+Evenness_change=c(Y03_even,Y36_even)
+even_df=data.frame(Time, Plot_number, Treatment, Quadrat_number, Quadrat_fenced, Evenness_change)
+```
+
+# Relative abundance of species (Option2: Braun-Blanquet Cover Abundance Scale = Abundance then compare between treatments)
+
+???????????????????
+H: Removal of browsing will cause a greater change in the relative abundances of species in the understorey community in T1 as compared to T2 compared to Control plots
+= test whether Relative Abundance [ A(T1)/A(T2) ] increases over time = the change in Relative Abundance is greater than 0 
+
+H: Removal of browsing will cause a change in the relative abundances of species in the understorey community across all treatments (T1, T2 & Control)
+= test whether Relative Abundance [ A(T1)/A(T2) ] changes over time = the change in Relative Abundance is not equal to 0
+
+How do we decide WHICH quadrat relative to WHICH quadrat 
+????????????????????
+
+```{r} 
+# Calculate abundance for each quadrat (sum of scores)
+Y0_abun=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y0_data[Y0_data$Plot_number==i & Y0_data$Quadrat_number==j,]
+    a=sum(dataset$Score)
+    Y0_abun=append(Y0_abun,a)
+  }
+}
+Y0_abun
+
+Y3_abun=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y3_data[Y3_data$Plot_number==i & Y3_data$Quadrat_number==j,]
+    a=sum(dataset$Score)
+    Y3_abun=append(Y3_abun,a)
+  }
+}
+Y3_abun
+
+Y6_abun=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y6_data[Y6_data$Plot_number==i & Y6_data$Quadrat_number==j,]
+    a=sum(dataset$Score)
+    Y6_abun=append(Y6_abun,a)
+  }
+}
+Y6_abun
+
+# Calculate relative abundance [ A(T1)/A(T2) ]
+# 1. Plot 10(T1) relative to Plot 9(T2) & Plot 12(T1) relative to Plot 7(T2)
+Y0_rabun1=Y0_abun[65:96]/Y0_abun[33:64]
+Y0_rabun2=Y0_abun[97:128]/Y0_abun[1:32]
+
+Y3_rabun1=Y3_abun[65:96]/Y3_abun[33:64]
+Y3_rabun2=Y3_abun[97:128]/Y3_abun[1:32]
+
+Y6_rabun1=Y6_abun[65:96]/Y6_abun[33:64]
+Y6_rabun2=Y6_abun[97:128]/Y6_abun[1:32]
+
+# 2. Plot 10(T1) relative to Plot 7(T2) & Plot 12(T1) relative to Plot 9(T2)
+Y0_rabun3=Y0_abun[65:96]/Y0_abun[1:32]
+Y0_rabun4=Y0_abun[97:128]/Y0_abun[33:64]
+
+Y3_rabun3=Y3_abun[65:96]/Y3_abun[1:32]
+Y3_rabun4=Y3_abun[97:128]/Y3_abun[33:64]
+
+Y6_rabun3=Y6_abun[65:96]/Y6_abun[1:32]
+Y6_rabun4=Y6_abun[97:128]/Y6_abun[33:64]
+
+# 3. Combined
+Y0_rabun=c(Y0_rabun1, Y0_rabun2, Y0_rabun3, Y0_rabun4)
+Y3_rabun=c(Y3_rabun1, Y3_rabun2, Y3_rabun3, Y3_rabun4)
+Y6_rabun=c(Y6_rabun1, Y6_rabun2, Y6_rabun3, Y6_rabun4)
+
+Y0_rabun
+Y3_rabun
+Y6_rabun
+
+# Calculate changes in relative abundance
+Y03_rabun=Y3_rabun-Y0_rabun
+Y36_rabun=Y6_rabun-Y3_rabun
+
+Y03_rabun
+Y36_rabun
+```
+Next:
+-How to test?
+-Generate a data frame
