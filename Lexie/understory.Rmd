@@ -5,5 +5,70 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
 ```
 
+```{r}
+df <- read.csv("../preprocessed data/understoreydata2020.csv", header = TRUE)
+#df <- read_excel("../datasets/Ecothining_understoreydata2020.xlsx", col_names = TRUE)
+head(df)
+```
+
+```{r}
+unique(df$Plot_number)
+df$Group <- 0
+
+for (i in 1:nrow(df)) {
+  if (df[i,5] %in% c(1, 8, 10, 12)) {
+    df[i,]$Group <- "t1"
+  } else if (df[i,5] %in% c(3,5,7,9)) {
+    df[i,]$Group <- "t2"
+  } else if (df[i,5] %in% c(2,4,6,11)){
+    df[i,]$Group <- "control"
+  }
+}
+
+#df$Group
+```
+
+```{r}
+t1 <- df[df$Plot_number %in% c(1,8,10,12),]
+t2 <- df[df$Plot_number %in% c(3,5,7,9),]
+control <- df[df$Plot_number %in% c(2,4,6,11),]
+
+grp_col <- rep(c("t1", "t2", "control"), each=length(unique(t1$Quadrat_number)))
+quadrat_col <- rep(c(1:32), 3)
+summary_df <- data.frame(Grp = grp_col, Quadrat_num = quadrat_col)
+summary_df$Fenced <- FALSE
+summary_df$Species_num <- 0
+
+# T1
+t1_summary <- t1[!duplicated(t1[,c("Year_monitoring","Plot_number","Quadrat_number")]),]
+t1_summary <- t1_summary[c("Year_monitoring","Plot_number","Quadrat_number", "Quadrat_fenced")]
+t1_summary$Species_num <- 0
+for (i in 1:nrow(t1_summary)) {
+  t1_summary[i,]$Species_num <- nrow(subset(t1,Quadrat_number==t1_summary[i,]$Quadrat_number & 
+                                              Plot_number==t1_summary[i,]$Plot_number &
+                                              Year_monitoring==t1_summary[i,]$Year_monitoring))
+}
+
+# T2
+t2_summary <- t2[!duplicated(t2[,c("Year_monitoring","Plot_number","Quadrat_number")]),]
+t2_summary <- t2_summary[c("Year_monitoring","Plot_number","Quadrat_number", "Quadrat_fenced")]
+t2_summary$Species_num <- 0
+for (i in 1:nrow(t2_summary)) {
+  t2_summary[i,]$Species_num <- nrow(subset(t2,Quadrat_number==t2_summary[i,]$Quadrat_number & 
+                                              Plot_number==t2_summary[i,]$Plot_number &
+                                              Year_monitoring==t2_summary[i,]$Year_monitoring))
+}
+
+# Control
+ctl_summary <- control[!duplicated(control[,c("Year_monitoring","Plot_number","Quadrat_number")]),]
+ctl_summary <- ctl_summary[c("Year_monitoring","Plot_number","Quadrat_number", "Quadrat_fenced")]
+ctl_summary$Species_num <- 0
+for (i in 1:nrow(ctl_summary)) {
+  ctl_summary[i,]$Species_num <- nrow(subset(control,Quadrat_number==ctl_summary[i,]$Quadrat_number & 
+                                              Plot_number==ctl_summary[i,]$Plot_number &
+                                              Year_monitoring==ctl_summary[i,]$Year_monitoring))
+}
+```
