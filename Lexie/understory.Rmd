@@ -72,3 +72,27 @@ for (i in 1:nrow(ctl_summary)) {
                                               Year_monitoring==ctl_summary[i,]$Year_monitoring))
 }
 ```
+
+### Calculate Shannon Diversity Index
+```{r}
+calc_sdi <- function(df) {
+  res <- data.frame(Year=c(0,3,6), SDI=c(0,0,0))
+  for (i in c(0, 3, 6)) {
+    total_count <- nrow(subset(df, Year_monitoring==i))
+    yr_subset <- df[df$Year_monitoring==i,]
+    yr_unique_species <- yr_subset[!duplicated(yr_subset[,c("T002_Flora_Species_name")]),]
+    sdi <- 0
+    for (j in 1:nrow(yr_unique_species)) {
+      species_count <- nrow(subset(yr_subset, T002_Flora_Species_name==yr_unique_species[j,]$T002_Flora_Species_name))
+      species_prop <- species_count / total_count
+      sdi <- sdi + (species_prop * log(species_prop))
+    }
+    res$SDI[res$Year==i] <- -1 * sdi
+  }
+  print(res)
+}
+
+t1_sdi <- calc_sdi(t1)
+t2_sdi <- calc_sdi(t2)
+ctl_sdi <- calc_sdi(control)
+```
