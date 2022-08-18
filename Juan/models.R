@@ -9,11 +9,14 @@ summary(model)
 par(mfrow = c(2,2))
 plot(model)
 
-# log guassian model
+
 CWDdatarm3 = CWDdata[-c(3, 12),]
 CWDdatarm6 = CWDdata[-c(6, 12),]
 CWDdatarm36 = CWDdata[-c(3, 6, 12),]
 CWDdata["abs_diff"] = abs(CWDdata["difference"] )
+
+#guassian model + plot3 removed
+
 modelrm = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
 summary(modelrm)
 
