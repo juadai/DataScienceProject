@@ -2,6 +2,7 @@ setwd("~/Desktop/capstone/analysis/Juan")
 
 CWDdata = read.csv("output.csv")
 
+
 # model using gaussian
 model = glm(difference ~ treatment, family = gaussian, data = CWDdata)
 summary(model)
@@ -9,11 +10,12 @@ summary(model)
 par(mfrow = c(2,2))
 plot(model)
 
+CWDdata = CWDdata[-c(12),]
+CWDdatarm3 = CWDdata[-c(3),]
+CWDdatarm6 = CWDdata[-c(6),]
+CWDdata["abs_diff"] = CWDdata["difference"] + abs(min(CWDdata["difference"])) + 1
 
-CWDdatarm3 = CWDdata[-c(3, 12),]
-CWDdatarm6 = CWDdata[-c(6, 12),]
-CWDdatarm36 = CWDdata[-c(3, 6, 12),]
-CWDdata["abs_diff"] = abs(CWDdata["difference"] )
+
 
 #guassian model + plot3 removed
 
@@ -43,15 +45,15 @@ plot(model1)
 
 
 ## quasipoisson + diff
-model2 = glm(difference ~ treatment, family = quasipoisson, data = CWDdatarm6)
+model2 = glm(abs_diff ~ treatment, family = quasipoisson, data = CWDdata)
 summary(model2)
 
 par(mfrow = c(2,2))
 plot(model2)
 
 
-## Gamma + difference
-model3 = glm(difference ~ treatment, family = Gamma(link = "inverse"), data = CWDdatarm6)
+## Gamma + abs_diff + inverse
+model3 = glm(abs_diff ~ treatment, family = Gamma(link = "inverse"), data = CWDdata)
 summary(model3)
 
 par(mfrow = c(2,2))
@@ -59,17 +61,16 @@ plot(model3)
 
 
 
-model4 = glm(difference ~ treatment, family = Gamma(link = "log"), data = CWDdatarm6)
-summary(model4)
-par(mfrow = c(2,2))
-plot(model4)
-
-
-## Gamma + abs_diff
-model5 = glm(abs_diff ~ treatment, family = Gamma(link = "identity"), data = CWDdatarm6)
+## Gamma + abs_diff + log
+model5 = glm(abs_diff ~ treatment, family = Gamma(link = "log"), data = CWDdata)
 summary(model5)
 
 par(mfrow = c(2,2))
 plot(model5)
 
+
+model4 = glm(difference ~ treatment, family = Gamma(link = "log"), data = CWDdatarm6)
+summary(model4)
+par(mfrow = c(2,2))
+plot(model4)
 
