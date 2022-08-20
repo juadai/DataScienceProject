@@ -11,6 +11,7 @@ flora2 = pd.read_csv('./VBA Species-Checklist 100921.csv')
 
 observ = pd.read_csv('./understoreydata2020.csv')
 
+
 SCORES = {0.5: 'Trace <1%',
           1: '1-5%',
           2: '5-10%',
@@ -50,6 +51,8 @@ observ = observ[['Year_monitoring',
                  'T002_Flora_Species_name',
                  'Score']]
 
+
+
 #############################################################
 # Join and consolidate flora data under a consistent schema #
 #############################################################
@@ -88,7 +91,9 @@ for i in observ.index:
     elif observ.loc[i, 'T002_Flora_Species_name'] in list(matched.index):
         observ.loc[i, 'key'] = matched[observ.loc[i, 'T002_Flora_Species_name']]
 
-observ = observ.merge(flora, left_on='key', right_on='Scientific Name')
+
+
+observ = observ.merge(flora, left_on='key', right_on='Scientific Name', how='left')
 
 observ.drop(['key'], inplace=True, axis=1)
 observ.reset_index(drop=True, inplace=True)
@@ -127,9 +132,9 @@ for i in pd.unique(observ['Plot_number']):
         
         g = a['Quadrat_gap']
         g = pd.unique(g[~g.isna()])
-        if len(g) != 1:
-            print('GAP CONFLICT: Plot', i, 'Quadrat', q)
-            print(a[['Year_monitoring', 'Quadrat_gap']].sort_values('Year_monitoring'))
+        #if len(g) != 1:
+        #    print('GAP CONFLICT: Plot', i, 'Quadrat', q)
+        #    print(a[['Year_monitoring', 'Quadrat_gap']].sort_values('Year_monitoring'))
         
         # FOR THE TIME BEING - WHERE THERE'S A CONFLICT, BREAK TIE ARBITRARILY
         g = g[0]
@@ -144,6 +149,18 @@ for i in pd.unique(observ['Plot_number']):
 
 observ.at[observ['Quadrat_gap']=='In Gap', 'Quadrat_gap'] = True
 observ.at[observ['Quadrat_gap']=='Not in Gap', 'Quadrat_gap'] = False
+
+
+observ['Life Form'].fillna('Unknown', inplace=True)
+
+inter_tussock = ['CWD',
+                 'Leaf Litter',
+                 'Moss/Lichen',
+                 'Bare Earth',
+                 'Dead Standing Timber',
+                 'MoSs/Lichen']
+
+observ = observ.loc[~observ['T002_Flora_Species_name'].isin(inter_tussock)]
 
 observ.to_csv('./joined_understorey_observations.csv')
 
