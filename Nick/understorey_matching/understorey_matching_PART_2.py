@@ -162,7 +162,7 @@ inter_tussock = ['CWD',
 
 observ = observ.loc[~observ['T002_Flora_Species_name'].isin(inter_tussock)]
 
-observ.to_csv('./joined_understorey_observations.csv')
+observ.to_csv('./joined_understorey_observations.csv', index=False)
 
 
 
