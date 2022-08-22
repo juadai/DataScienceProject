@@ -8,12 +8,14 @@ knitr::opts_chunk$set(echo = TRUE)
 setwd("~/Desktop/capstone/analysis/Juan")
 
 CWDdata = read.csv("output.csv")
+CWDdata[is.na(CWDdata)] <- 0
+CWDdata$difference = CWDdata$year.6 - CWDdata$year.0
 ```
 
 
 ## Gussian model fitting
 
-The scale-location plot shows an increasing trend, it states the heteroskedasticity, that is the spread of the residuals is not equal, and the cook’s distance shows that the point 3 are a significant influential point. All 3, 5, 9 are outliers, and all of them are from treatment Radial. All the coefficient is not significant in this case, so even though all of them are positive, we cannot draw conclusion from it.
+The scale-location plot shows an increasing trend, it states the heteroskedasticity, that is the spread of the residuals is not equal, and the cook’s distance shows that the point 3 are a significant influential point. All 3, 5, 9 are outliers, and all of them are from treatment Radial. Treatment radial is statistically significant in this case, and treatment Gap is not.
 ```{r guassian_identity, echo = TRUE}
 # model using gaussian
 model = glm(difference ~ treatment, family = gaussian, data = CWDdata)
@@ -28,17 +30,15 @@ create data:
 (2)removal of plot 6; 
 (3)adding a constant.
 ```{r data_redefinition, echo=FALSE}
-CWDdata = CWDdata[-c(12),]
 CWDdatarm3 = CWDdata[-c(3),]
 CWDdatarm6 = CWDdata[-c(6),]
 CWDdata["abs_diff"] = CWDdata["difference"] + abs(min(CWDdata["difference"])) + 1
 ```
 
 
-Then we tried to **remove the plot 3(most significant outlier) and plot 12**, the outstanding outliers become 7,8,9, both 7 and 9 are influential points, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment and radial treatment become significant now, and AIC is smaller than before.
+Then we tried to **remove the plot 3(most significant outlier) and plot 12**, the outstanding outliers become 8,9,12, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment and radial treatment become significant now, and AIC is smaller than before.
 ```{r guassian_remove_plot3, echo=FALSE}
 #guassian model + plot3 removed
-
 modelrm = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
 summary(modelrm)
 
@@ -52,7 +52,7 @@ plot(modelrm)
 
 ## Poisson model fitting
 
-The poisson model cannot be used directly, since the one of the difference in CWD is -6.5, so if we want to fit the poisson model, we have to convert all different to positive by adding a constant in r.(pros: no information is lost + we only care the direction rather than the magnitude) this time the scale-location model still shows an increasing trend, all 3,5, 9 becomes significant influential this time, almost all points become influential. So, this fitting is worse than the original guassian model fitting. All the coefficient is statistically significant and positive.
+The poisson model cannot be used directly, since the one of the difference in CWD is -6.5, so if we want to fit the poisson model, we have to convert all different to positive by adding a constant in r.(pros: no information is lost + we only care the direction rather than the magnitude) this time the scale-location model still shows an increasing trend. All the coefficient is statistically significant and positive.
 ```{r poisson_abs_diff, echo=FALSE}
 # model using poisson + abs_diff
 model0 = glm(abs_diff ~ treatment, family = poisson, data = CWDdata)
@@ -77,7 +77,7 @@ plot(model1)
 
 ## Quasi-poisson model fitting
 
-The quansi-poisson cannot be used directly, we use adding a constant to further fit into the quasi-poisson model to resolve the overdispersion problem, the scale-location still shows an increasing trend, the outlier this time is point 3,5,9, and all of them are from the treatment Radial. Plot 3 is the only influential point. But all the coefficients are not significant but are positive. 
+The quansi-poisson cannot be used directly, we use adding a constant to further fit into the quasi-poisson model to resolve the overdispersion problem, the scale-location still shows an increasing trend, the outlier this time is point 3,5,9, and all of them are from the treatment Radial. But all the coefficients are not significant but are positive. 
 ```{r quasi_poisson, echo=FALSE}
 ## quasipoisson + diff
 model2 = glm(abs_diff ~ treatment, family = quasipoisson, data = CWDdata)
@@ -110,4 +110,15 @@ summary(model5)
 
 par(mfrow = c(2,2))
 plot(model5)
+```
+
+
+The gamma log model which removed the plot3 data clearly perform better than the previous model, but the plot 11 is influential and 6,9,11 are outliers.
+```{r gamma_rmplot3, echo=FALSE}
+## Gamma + abs_diff + log
+model6 = glm(abs_diff ~ treatment, family = Gamma(link = "log"), data = CWDdatarm3)
+summary(model6)
+
+par(mfrow = c(2,2))
+plot(model6)
 ```
