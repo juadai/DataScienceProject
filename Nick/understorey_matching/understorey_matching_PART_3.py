@@ -23,10 +23,10 @@ df = pd.read_csv('./joined_understorey_observations.csv')
 life_forms = pd.unique(df['Life Form'])
 
 
-#for i in df.index:
-#    df.loc[i, 'Abundance'] = sum(SCORES[df.loc[i,'Score']])/2
+for i in df.index:
+    df.loc[i, 'Abundance'] = sum(SCORES[df.loc[i,'Score']])/2
 
-df.drop(['Record_ID'], inplace=True, axis=1)
+df.drop(['Record_ID', 'Score'], inplace=True, axis=1)
 
 df = df.groupby(by=['Plot_treatment',
                     'Plot_number',
