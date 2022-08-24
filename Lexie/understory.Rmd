@@ -83,7 +83,7 @@ calc_sdi <- function(df) {
   res <- data.frame(PlotNum=plots, Year=rep(c(0,3,6), each=length(plots)), SDI=rep(c(0,0,0), each=length(plots)))
   for (p in plots) {
     for (i in c(0, 3, 6)) {
-      total_count <- nrow(subset(df, Year_monitoring==i, Plot_number==p))
+      total_count <- nrow(subset(df, Year_monitoring==i & Plot_number==p))
       yr_subset <- df[df$Year_monitoring==i & df$Plot_number==p,]
       yr_unique_species <- yr_subset[!duplicated(yr_subset[,c("T002_Flora_Species_name")]),]
       sdi <- 0
