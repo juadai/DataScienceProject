@@ -5,11 +5,13 @@ date: "2022-08-18"
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-setwd("~/Desktop/capstone/analysis/Juan")
+setwd("~/Desktop/capstone/analysis/Juan/CWD")
+
 
 CWDdata = read.csv("output.csv")
 CWDdata[is.na(CWDdata)] <- 0
 CWDdata$difference = CWDdata$year.6 - CWDdata$year.0
+
 ```
 
 
@@ -22,6 +24,7 @@ model = glm(difference ~ treatment, family = gaussian, data = CWDdata)
 summary(model)
 
 par(mfrow = c(2,2))
+
 plot(model)
 ```
 
@@ -36,7 +39,7 @@ CWDdata["abs_diff"] = CWDdata["difference"] + abs(min(CWDdata["difference"])) + 
 ```
 
 
-Then we tried to **remove the plot 3(most significant outlier) and plot 12**, the outstanding outliers become 8,9,12, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment and radial treatment become significant now, and AIC is smaller than before.
+Then we tried to **remove the plot 3(most significant outlier)**, the outstanding outliers become 8,9,12, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment and radial treatment become significant now, and AIC is smaller than before.
 ```{r guassian_remove_plot3, echo=FALSE}
 #guassian model + plot3 removed
 modelrm = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
