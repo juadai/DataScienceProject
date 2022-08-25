@@ -1,0 +1,293 @@
+---
+title: "DBH_visualization"
+output: html_document
+---
+
+# data preprocessing
+```{r}
+# load original data
+DBHdata = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
+```
+
+```{r}
+# Skip this, it will output a csv!!!!!!!!!!!!
+# output sub-csv from original data "all_plots.csv", which contains treegrowth = DBHyear6 - DBHyear0 <= 0
+DBHdata$Tree.growth = DBHdata$DBH.year.6 - DBHdata$DBH.year.0
+write.csv(DBHdata[DBHdata$Tree.growth <= 0 & !is.na(DBHdata$Tree.growth), ], "nonpositive treegrowth_original data.csv", row.names = FALSE)
+# Skip this, it will output a csv!!!!!!!!!!!!
+```
+
+```{r}
+summary(DBHdata)
+sapply(DBHdata, typeof)
+```
+
+Currently, "Class.year.0" and "Class.year.6" are of type "logical", we don't modify them as they will not be used in the following preliminary analyses.
+The six hollow columns need to be converted to integer type, but first, we need to check values for each column and deal with incorrect values, NAs and blank.
+
+check incorrect values
+```{r}
+sapply(DBHdata[c(2,3,4,5,8,9,10,11,12,13,14,15)], unique)
+```
+```{r}
+# assign correct values in the first 4 hollow columns: "0/0" should be "0", "yes" and "Yes " should both be "Yes"
+DBHdata[DBHdata$Hollows.Class.1.year.0 == "0/0", 10:12] = "0"
+DBHdata[DBHdata$Hollows.Class.1.year.6 == "yes" | DBHdata$Hollows.Class.1.year.6 == "Yes ", "Hollows.Class.1.year.6"] = "Yes"
+
+# As "Hollows.Class.1.year.6" can't be converted to integer (not sure what value substitute "Yes"), further conversion for integer-representation: "0.0" to "0", "1.0" to "1", "2.0" to "2"
+DBHdata[DBHdata$Hollows.Class.1.year.6 == "0.0", "Hollows.Class.1.year.6"] = "0"
+DBHdata[DBHdata$Hollows.Class.1.year.6 == "1.0", "Hollows.Class.1.year.6"] = "1"
+DBHdata[DBHdata$Hollows.Class.1.year.6 == "2.0", "Hollows.Class.1.year.6"] = "2"
+
+sapply(DBHdata[10:15], unique)
+```
+
+check NAs and blank
+```{r}
+# blank "Tree.Number"
+DBHdata[DBHdata$Tree.Number == "", ]
+DBHdata = DBHdata[DBHdata$Tree.Number != "", ] # doesn't have any other information, remove rows
+```
+```{r}
+# blank "Large"
+DBHdata[DBHdata$Large == "", "Tree.Number"]
+DBHdata[DBHdata$Large == "", "Large"] = "No" # assume "No", where there's no "Yes"
+```
+```{r}
+# blank "Alive.at.year.6"
+DBHdata[DBHdata$Alive.at.year.6 == "", 1:7]
+# 20 rows with blank "Alive.at.year.6" have valid values for "DBH.year.6", assume they have "Yes" for "Alive.at.year.6"
+DBHdata[DBHdata$Alive.at.year.6 == "" & !(is.na(DBHdata$DBH.year.6)), "Alive.at.year.6"] = "Yes"
+
+# the rest rows with blank "Alive.at.year.6" have NA for "DBH.year.6", not sure whether the trees are not alive, or just missing records in year6, so no modification.
+```
+```{r}
+# NA in "DBH.year.6", no modification
+DBHdata[is.na(DBHdata$DBH.year.6), 1:7]
+
+# 15 NAs for "DBH.year.6", 14 rows are the rows where "Alive.at.year.6" is blank, and one exception.
+```
+```{r}
+# NA in "DBH.year.0", no modification
+DBHdata[is.na(DBHdata$DBH.year.0), 1:7] # 7 NAs for "DBH.year.0"
+```
+```{r}
+# assign 0 for NA in the 6 hollow-columns
+DBHdata[DBHdata$Hollows.Class.1.year.0=="", "Hollows.Class.1.year.0"]="0"
+DBHdata[DBHdata$Hollows.Class.2.year.0=="", "Hollows.Class.2.year.0"]="0"
+DBHdata[DBHdata$Hollows.Class.3.year.0=="", "Hollows.Class.3.year.0"]="0"
+DBHdata[DBHdata$Hollows.Class.1.year.6=="", "Hollows.Class.1.year.6"]="0"
+DBHdata[is.na(DBHdata$Hollows.Class.2.year.6), "Hollows.Class.2.year.6"] = 0
+DBHdata[is.na(DBHdata$Hollows.Class.3.year.6), "Hollows.Class.3.year.6"] = 0
+sapply(DBHdata[10:15], unique)
+```
+
+assign correct data type for hollow columns
+```{r}
+DBHdata[c(10,11,12,14,15)] = sapply(DBHdata[c(10,11,12,14,15)], as.integer)
+sapply(DBHdata, typeof)
+```
+
+prepare data for boxplot
+```{r}
+# prepare data for boxplot
+DBHdata$Tree.growth = DBHdata$DBH.year.6 - DBHdata$DBH.year.0
+T1data = DBHdata[DBHdata$Treatment == "T1: Gap", ]
+T2data = DBHdata[DBHdata$Treatment == "T2: Radial", ]
+Controldata = DBHdata[DBHdata$Treatment == "Control", ]
+```
+
+
+
+
+
+
+# basic analysis
+boxplot DBH in year0 VS year6 for different plot in T1, T2, Control
+```{r}
+at = c(1, 3.5, 6, 8.5, 1.5, 4, 6.5, 9)
+boxplot(T1data$DBH.year.0~T1data$Plot, at = c(1, 3.5, 6, 8.5), boxwex = 0.5, xlab = "T1: Gap plot number", ylab = "DBH in year0 VS year6", xlim = c(0, 10), ylim = c(15, 100), col = "light grey")
+boxplot(T1data$DBH.year.6~T1data$Plot, add = TRUE, at = c(1.5, 4, 6.5, 9), boxwex = 0.5, xaxt = "n", col = "dark grey")
+plotnum = c(1, 8, 10, 12)
+for (i in c(1, 2, 3, 4)) {
+  text(x = at[i]-0.5, y = fivenum(T1data[T1data$Plot == plotnum[i], "DBH.year.0"]), labels = fivenum(T1data[T1data$Plot == plotnum[i], "DBH.year.0"]), cex = 0.6)
+  text(x = at[i+4]+0.5, y = fivenum(T1data[T1data$Plot == plotnum[i], "DBH.year.6"]), labels = fivenum(T1data[T1data$Plot == plotnum[i], "DBH.year.6"]), cex = 0.6)
+}
+legend("topright", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+
+boxplot(T2data$DBH.year.0~T2data$Plot, at = c(1, 3.5, 6, 8.5), boxwex = 0.5, xlab = "T2: Radial plot number", ylab = "DBH in year0 VS year6", xlim = c(0, 10), ylim = c(15, 100), col = "light grey")
+boxplot(T2data$DBH.year.6~T2data$Plot, add = TRUE, at = c(1.5, 4, 6.5, 9), boxwex = 0.5, xaxt = "n", col = "dark grey")
+plotnum = c(3, 5, 7, 9)
+for (i in c(1, 2, 3, 4)) {
+  text(x = at[i]-0.5, y = fivenum(T2data[T2data$Plot == plotnum[i], "DBH.year.0"]), labels = fivenum(T2data[T2data$Plot == plotnum[i], "DBH.year.0"]), cex = 0.6)
+  text(x = at[i+4]+0.5, y = fivenum(T2data[T2data$Plot == plotnum[i], "DBH.year.6"]), labels = round(fivenum(T2data[T2data$Plot == plotnum[i], "DBH.year.6"]), 2), cex = 0.6)
+}
+legend("topright", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+
+boxplot(Controldata$DBH.year.0~Controldata$Plot, at = c(1, 3.5, 6, 8.5), boxwex = 0.5, xlab = "Control treatment plot number", ylab = "DBH in year0 VS year6", xlim = c(0, 10), ylim = c(15, 100), col = "light grey")
+boxplot(Controldata$DBH.year.6~Controldata$Plot, add = TRUE, at = c(1.5, 4, 6.5, 9), boxwex = 0.5, xaxt = "n", col = "dark grey")
+plotnum = c(2, 4, 6, 11)
+for (i in c(1, 2, 3, 4)) {
+  text(x = at[i]-0.5, y = fivenum(Controldata[Controldata$Plot == plotnum[i], "DBH.year.0"]), labels = round(fivenum(Controldata[Controldata$Plot == plotnum[i], "DBH.year.0"]), 2), cex = 0.6)
+  text(x = at[i+4]+0.5, y = fivenum(Controldata[Controldata$Plot == plotnum[i], "DBH.year.6"]), labels = round(fivenum(Controldata[Controldata$Plot == plotnum[i], "DBH.year.6"]), 2), cex = 0.6)
+}
+legend("topright", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+```
+
+
+
+
+
+
+# preliminary result
+boxplot DBH in year0 VS year6 for T1, T2, Control
+```{r}
+at = c(1, 3.5, 6, 1.5, 4, 6.5)
+boxplot(DBHdata$DBH.year.0~DBHdata$Treatment, boxwex = 0.5, at = c(1, 3.5, 6), xlab = "treatment", ylab = "DBH in year0 VS year6", xlim = c(0, 7.5), col = "light grey")
+boxplot(DBHdata$DBH.year.6~DBHdata$Treatment, boxwex = 0.5, add = TRUE, at = c(1.5, 4, 6.5), xaxt = "n", col = "dark grey")
+treatment = c("Control", "T1: Gap", "T2: Radial")
+for (i in c(1, 2, 3)) {
+  text(x = at[i]-0.5, y = fivenum(DBHdata[DBHdata$Treatment == treatment[i], "DBH.year.0"]), labels = fivenum(DBHdata[DBHdata$Treatment == treatment[i], "DBH.year.0"]), cex = 0.6)
+  text(x = at[i+3]+0.5, y = fivenum(DBHdata[DBHdata$Treatment == treatment[i], "DBH.year.6"]), labels = round(fivenum(DBHdata[DBHdata$Treatment == treatment[i], "DBH.year.6"]), 2), cex = 0.6)
+}
+legend("topleft", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+```
+
+boxplot tree growth (DBH in year6 - DBH in year0) for T1, T2, Control
+```{r}
+at = c(1, 2.2, 3.4)
+treatment = c("Control", "T1: Gap", "T2: Radial")
+
+boxplot(DBHdata$Tree.growth~DBHdata$Treatment, at = c(1, 2.2, 3.4), xlab = "treatment", ylab = "tree growth = DBHyear6 - DBHyear0", xlim = c(0.5, 4), col = "light grey")
+for (i in c(1, 2, 3)) {
+  text(x = at[i]+0.5, y = fivenum(DBHdata[DBHdata$Treatment == treatment[i], "Tree.growth"]), labels = round(fivenum(DBHdata[DBHdata$Treatment == treatment[i], "Tree.growth"]), 2), cex = 0.6)
+}
+
+boxplot(DBHdata$Tree.growth~DBHdata$Treatment, at = c(1, 2.2, 3.4), xlab = "treatment", ylab = "tree growth = DBHyear6 - DBHyear0 (zoom in)", xlim = c(0.5, 4), ylim = c(-3, 8), col = "light grey")
+for (i in c(1, 2, 3)) {
+  text(x = at[i]+0.5, y = fivenum(DBHdata[DBHdata$Treatment == treatment[i], "Tree.growth"]), labels = round(fivenum(DBHdata[DBHdata$Treatment == treatment[i], "Tree.growth"]), 2), cex = 0.6)
+}
+```
+
+boxplot DBH for large trees VS other trees in T1, T2, Control
+```{r}
+boxplot(T1data$DBH.year.0~T1data$Large, at = c(1, 2.5), boxwex = 0.5, xlab = "T1: Gap Large tree", ylab = "DBH in year0 VS year6", xlim = c(0.5, 3.5), ylim = c(15, 70), col = "light grey")
+boxplot(T1data$DBH.year.6~T1data$Large, boxwex = 0.5, at = c(1.5, 3), add = TRUE, col = "dark grey")
+text(x = 0.65, y = fivenum(T1data[T1data$Large == "No", "DBH.year.0"]), labels = fivenum(T1data[T1data$Large == "No", "DBH.year.0"]), cex = 0.6)
+text(x = 1.85, y = fivenum(T1data[T1data$Large == "No", "DBH.year.6"]), labels = fivenum(T1data[T1data$Large == "No", "DBH.year.6"]), cex = 0.6)
+text(x = 2.15, y = fivenum(T1data[T1data$Large == "Yes", "DBH.year.0"]), labels = fivenum(T1data[T1data$Large == "Yes", "DBH.year.0"]), cex = 0.6)
+text(x = 3.35, y = fivenum(T1data[T1data$Large == "Yes", "DBH.year.6"]), labels = fivenum(T1data[T1data$Large == "Yes", "DBH.year.6"]), cex = 0.6)
+legend("topleft", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+
+boxplot(T2data$DBH.year.0~T2data$Large, at = c(1, 2.5), boxwex = 0.5, xlab = "T2: Radial Large tree", ylab = "DBH in year0 VS year6", xlim = c(0.5, 3.5), col = "light grey")
+boxplot(T2data$DBH.year.6~T2data$Large, boxwex = 0.5, at = c(1.5, 3), add = TRUE, col = "dark grey")
+text(x = 0.65, y = fivenum(T2data[T2data$Large == "No", "DBH.year.0"]), labels = fivenum(T2data[T2data$Large == "No", "DBH.year.0"]), cex = 0.6)
+text(x = 1.85, y = fivenum(T2data[T2data$Large == "No", "DBH.year.6"]), labels = fivenum(T2data[T2data$Large == "No", "DBH.year.6"]), cex = 0.6)
+text(x = 2.15, y = fivenum(T2data[T2data$Large == "Yes", "DBH.year.0"]), labels = fivenum(T2data[T2data$Large == "Yes", "DBH.year.0"]), cex = 0.6)
+text(x = 3.35, y = fivenum(T2data[T2data$Large == "Yes", "DBH.year.6"]), labels = round(fivenum(T2data[T2data$Large == "Yes", "DBH.year.6"]), 2), cex = 0.6)
+legend("topleft", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+
+boxplot(Controldata$DBH.year.0~Controldata$Large, at = c(1, 2.5), boxwex = 0.5, xlab = "Control treatment Large tree", ylab = "DBH in year0 VS year6", xlim = c(0.5, 3.5), ylim = c(15, 70), col = "light grey")
+boxplot(Controldata$DBH.year.6~Controldata$Large, boxwex = 0.5, at = c(1.5, 3), add = TRUE, col = "dark grey")
+text(x = 0.65, y = fivenum(Controldata[Controldata$Large == "No", "DBH.year.0"]), labels = fivenum(Controldata[Controldata$Large == "No", "DBH.year.0"]), cex = 0.6)
+text(x = 1.85, y = fivenum(Controldata[Controldata$Large == "No", "DBH.year.6"]), labels = fivenum(Controldata[Controldata$Large == "No", "DBH.year.6"]), cex = 0.6)
+text(x = 2.15, y = fivenum(Controldata[Controldata$Large == "Yes", "DBH.year.0"]), labels = round(fivenum(Controldata[Controldata$Large == "Yes", "DBH.year.0"]), 2), cex = 0.6)
+text(x = 3.35, y = fivenum(Controldata[Controldata$Large == "Yes", "DBH.year.6"]), labels = fivenum(Controldata[Controldata$Large == "Yes", "DBH.year.6"]), cex = 0.6)
+legend("topleft", legend = c("year0", "year6"), fill = c("light grey", "dark grey"))
+```
+
+boxplot tree growth (DBH in year6 - DBH in year0) for large trees VS other trees in T1, T2, Control
+```{r}
+boxplot(T1data$Tree.growth~T1data$Large, xlab = "Large tree", ylab = "tree growth = DBHyear6 - DBHyear0 (zoom in)", ylim = c(-3, 8), col = "light blue", at = c(0.5, 1), boxwex = 0.5, xlim = c(0, 5))
+boxplot(T2data$Tree.growth~T2data$Large, ylim = c(-3, 8), col = "pink", at = c(2, 2.5), boxwex = 0.5, add = TRUE)
+boxplot(Controldata$Tree.growth~Controldata$Large, ylim = c(-3, 8), col = "light grey", at = c(3.5, 4), boxwex = 0.5, add = TRUE)
+
+text(x = 0.15, y = fivenum(T1data[T1data$Large == "No", "Tree.growth"]), labels = round(fivenum(T1data[T1data$Large == "No", "Tree.growth"]), 2), cex = 0.6)
+text(x = 1.35, y = fivenum(T1data[T1data$Large == "Yes", "Tree.growth"]), labels = fivenum(T1data[T1data$Large == "Yes", "Tree.growth"]), cex = 0.6)
+
+text(x = 1.65, y = fivenum(T2data[T2data$Large == "No", "Tree.growth"]), labels = round(fivenum(T2data[T2data$Large == "No", "Tree.growth"]), 2), cex = 0.6)
+text(x = 2.85, y = fivenum(T2data[T2data$Large == "Yes", "Tree.growth"]), labels = round(fivenum(T2data[T2data$Large == "Yes", "Tree.growth"]), 2), cex = 0.6)
+
+text(x = 3.15, y = fivenum(Controldata[Controldata$Large == "No", "Tree.growth"]), labels = round(fivenum(Controldata[Controldata$Large == "No", "Tree.growth"]), 2), cex = 0.6)
+text(x = 4.35, y = fivenum(Controldata[Controldata$Large == "Yes", "Tree.growth"]), labels = round(fivenum(Controldata[Controldata$Large == "Yes", "Tree.growth"]), 2), cex = 0.6)
+
+legend("topright", legend = c("T1: Gap", "T2: Radial", "Control"), fill = c("light blue", "pink", "light grey"))
+```
+
+
+
+
+
+
+# other plots
+boxplot tree growth (DBH in year6 - DBH in year0) for different plots in T1, T2, Control
+```{r}
+boxplot(T1data$DBH.year.6-T1data$DBH.year.0~T1data$Plot, xlab = "plot number", ylab = "tree growth = DBHyear6 - DBHyear0 (zoom in)", ylim = c(-3, 8), xlim = c(0, 8), at = c(0.5, 1, 1.5, 2), boxwex = 0.45, col = "light blue")
+
+boxplot(T2data$DBH.year.6-T2data$DBH.year.0~T2data$Plot, ylim = c(-3, 8), at = c(3, 3.5, 4, 4.5), boxwex = 0.45, add = TRUE, col = "pink")
+
+boxplot(Controldata$DBH.year.6-Controldata$DBH.year.0~Controldata$Plot, ylim = c(-3, 8), at = c(5.5, 6, 6.5, 7), boxwex = 0.45, add = TRUE, col = "light grey")
+legend("topright", legend = c("T1: Gap", "T2: Radial", "Control"), fill = c("light blue", "pink", "light grey"))
+```
+
+```{r}
+# Skip this, it will output a csv!!!!!!!!!!!!
+# output sub-csv from original data "all_plots.csv", which contains non-zero hollows
+write.csv(DBHdata[DBHdata$Hollows.Class.1.year.6 != "0" | DBHdata$Hollows.Class.1.year.0 > 0 | DBHdata$Hollows.Class.2.year.0 > 0 | DBHdata$Hollows.Class.3.year.0 > 0 | DBHdata$Hollows.Class.2.year.6 > 0 | DBHdata$Hollows.Class.3.year.6 > 0, ], "nonzero hollows.csv", row.names = FALSE)
+# Skip this, it will output a csv!!!!!!!!!!!!
+```
+
+
+
+
+
+
+# further analysis
+# relative tree growth
+relative growth = tree growth/DBHyear0*100, plot relative growth for each treatment, each plot, large VS other trees
+```{r}
+DBHdata$Relative.growth = DBHdata$Tree.growth/DBHdata$DBH.year.0*100
+T1data = DBHdata[DBHdata$Treatment == "T1: Gap", ]
+T2data = DBHdata[DBHdata$Treatment == "T2: Radial", ]
+Controldata = DBHdata[DBHdata$Treatment == "Control", ]
+
+summary(DBHdata$Relative.growth)
+DBHdata[is.na(DBHdata$Tree.growth) | is.na(DBHdata$DBH.year.0), ]
+```
+
+relative growth for each plot
+```{r}
+boxplot(DBHdata$Relative.growth~DBHdata$Plot, xlab = "plot number", ylab = "relative tree growth(%)")
+
+boxplot(T1data$Relative.growth~T1data$Plot, xlab = "plot number", ylab = "relative tree growth(%) (zoom in)", ylim = c(-10, 30), xlim = c(0, 8), at = c(0.5, 1, 1.5, 2), boxwex = 0.45, col = "light blue")
+boxplot(T2data$Relative.growth~T2data$Plot, ylim = c(-10, 30), at = c(3, 3.5, 4, 4.5), boxwex = 0.45, add = TRUE, col = "pink")
+boxplot(Controldata$Relative.growth~Controldata$Plot, ylim = c(-10, 30), at = c(5.5, 6, 6.5, 7), boxwex = 0.45, add = TRUE, col = "light grey")
+legend("topright", legend = c("T1: Gap", "T2: Radial", "Control"), fill = c("light blue", "pink", "light grey"))
+```
+
+relative growth for each treatment
+```{r}
+boxplot(DBHdata$Relative.growth~DBHdata$Treatment, xlab = "treatment", ylab = "relative tree growth(%)")
+boxplot(DBHdata$Relative.growth~DBHdata$Treatment, ylim = c(-10, 30), xlab = "treatment", ylab = "relative tree growth(%) (zoom in)")
+```
+
+relative growth for large VS other trees
+```{r}
+boxplot(T1data$Relative.growth~T1data$Large, xlab = "Large tree", ylab = "relative tree growth(%) (zoom in)", ylim = c(-10, 30), col = "light blue", at = c(0.5, 1), boxwex = 0.5, xlim = c(0, 5))
+boxplot(T2data$Relative.growth~T2data$Large, ylim = c(-10, 30), col = "pink", at = c(2, 2.5), boxwex = 0.5, add = TRUE)
+boxplot(Controldata$Relative.growth~Controldata$Large, ylim = c(-10, 30), col = "light grey", at = c(3.5, 4), boxwex = 0.5, add = TRUE)
+
+text(x = 0.15, y = fivenum(T1data[T1data$Large == "No", "Relative.growth"]), labels = round(fivenum(T1data[T1data$Large == "No", "Relative.growth"]), 2), cex = 0.6)
+text(x = 1.35, y = fivenum(T1data[T1data$Large == "Yes", "Relative.growth"]), labels = round(fivenum(T1data[T1data$Large == "Yes", "Relative.growth"]), 2), cex = 0.6)
+
+text(x = 1.65, y = fivenum(T2data[T2data$Large == "No", "Relative.growth"]), labels = round(fivenum(T2data[T2data$Large == "No", "Relative.growth"]), 2), cex = 0.6)
+text(x = 2.85, y = fivenum(T2data[T2data$Large == "Yes", "Relative.growth"]), labels = round(fivenum(T2data[T2data$Large == "Yes", "Relative.growth"]), 2), cex = 0.6)
+
+text(x = 3.15, y = fivenum(Controldata[Controldata$Large == "No", "Relative.growth"]), labels = round(fivenum(Controldata[Controldata$Large == "No", "Relative.growth"]), 2), cex = 0.6)
+text(x = 4.35, y = fivenum(Controldata[Controldata$Large == "Yes", "Relative.growth"]), labels = round(fivenum(Controldata[Controldata$Large == "Yes", "Relative.growth"]), 2), cex = 0.6)
+
+legend("topright", legend = c("T1: Gap", "T2: Radial", "Control"), fill = c("light blue", "pink", "light grey"))
+```
+
+Finding:
+T2 has significant effect in increasing relative tree growth for large trees, while relative tree growth for large trees in T1 and Control seems to be less than not-large trees. Comparing to Tree.growth in the previous plots, relative tree growth has very different pattern.
