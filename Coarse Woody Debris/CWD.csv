@@ -1,0 +1,11 @@
+LENGTH (m),Year,Plot 1,Plot 2,Plot 3,Plot 4,Plot 5,Plot 6,Plot 7,Plot 8,Plot 9,Plot 10,Plot 11,Plot 12
+Logs,Year 0,68.0,53.0,224.0,87.0,161.0,92.0,215.0,209.0,92.0,110.6,19.0,
+logs >40cm,Year 0,2.0,26.0,21.0,34.0,20.5,23.0,59.0,20.0,34.5,36.6,178.5,
+stumps,Year 0,11.5,5.0,16.5,15.5,8.0,7.5,6.0,10.0,15.0,8.5,25.0,
+total,Year 0,81.5,84.0,261.5,136.5,189.5,122.5,280.0,239.0,141.5,155.7,222.5,
+Logs,Year 6,332.0,42.8,,97.0,363.0,79.0,543.1,406.5,87.7,379.0,202.8,507.2
+logs >40cm,Year 6,100.0,25.0,,38.0,58.0,14.0,60.8,22.0,30.8,50.0,16.5,93.0
+stumps,Year 6,117.5,17.0,,12.0,89.5,23.0,125.0,112.0,66.5,195.5,54.4,210.0
+total,Year 6,549.5,84.8,,147.0,510.5,116.0,728.9,540.5,185.0,624.5,273.7,810.2
+treatment,Year 0,Gap,Control,Radial,Control,Radial,Control,Radial,Gap,Radial,Gap,Control,Gap
+treatment,Year 6,Gap,Control,Radial,Control,Radial,Control,Radial,Gap,Radial,Gap,Control,Gap
