@@ -18,7 +18,7 @@ SCORES = {0.5: [0,1],
 # Import data and discard extra rows #
 ######################################
 
-df = pd.read_csv('./joined_understorey_observations.csv')
+df = pd.read_csv('../dataset/joined_understorey_observations.csv')
 
 life_forms = pd.unique(df['Life Form'])
 
