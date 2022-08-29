@@ -49,4 +49,4 @@ for i in df.index:
         matrix.loc[i, lf] = val
 
 matrix.drop_duplicates(inplace=True)
-matrix.to_csv('./observations_matrix.csv')
+matrix.to_csv('./outputs/observations_matrix.csv')
