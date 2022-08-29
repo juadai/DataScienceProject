@@ -6,10 +6,10 @@ import nltk
 # Import data and discard extra rows #
 ######################################
 
-flora1 = pd.read_excel('./Flora and Fauna species 2007.xls')
-flora2 = pd.read_csv('./VBA Species-Checklist 100921.csv')
+flora1 = pd.read_excel('./Reference/Flora and Fauna species 2008.xls')
+flora2 = pd.read_csv('./Reference/VBA Species-Checklist 100921.csv')
 
-observ = pd.read_csv('./understoreydata2020.csv')
+observ = pd.read_csv('../dataset/understoreydata2020.csv')
 
 
 SCORES = {0.5: 'Trace <1%',
@@ -72,9 +72,14 @@ flora = flora.loc[~flora['Life Form'].isna()]
 # Load Manually Matched Species #
 #################################
 
-matched = pd.read_csv('./to_match.csv', index_col=0)
+matched = pd.read_csv('./Manual Matching/to_match.csv')
+matched.index = matched['Observation']
 matched = matched['Candidate 1']
 matched.dropna(inplace=True)
+
+matched_extra = pd.read_csv('./Manual Matching/matching_round_2.csv')
+matched_extra.index = matched_extra['0']
+matched_extra = matched_extra['new_key']
 
 
 ######################################
@@ -91,9 +96,12 @@ for i in observ.index:
     elif observ.loc[i, 'T002_Flora_Species_name'] in list(matched.index):
         observ.loc[i, 'key'] = matched[observ.loc[i, 'T002_Flora_Species_name']]
 
+    if observ.loc[i, 'key'] in list(matched_extra.index):
+        observ.at[i, 'key'] = matched_extra[observ.loc[i, 'key']]
 
 
-observ = observ.merge(flora, left_on='key', right_on='Scientific Name', how='left')
+
+observ = observ.merge(flora1, left_on='key', right_on='Scientific Name', how='left')
 
 observ.drop(['key'], inplace=True, axis=1)
 observ.reset_index(drop=True, inplace=True)
@@ -102,7 +110,7 @@ observ.reset_index(drop=True, inplace=True)
 # Join observations with flora table #
 ######################################
 
-weeds = pd.read_excel('./RGW species list for weeds.xlsx')
+#weeds = pd.read_excel('./RGW species list for weeds.xlsx')
 
 
 
@@ -162,7 +170,15 @@ inter_tussock = ['CWD',
 
 observ = observ.loc[~observ['T002_Flora_Species_name'].isin(inter_tussock)]
 
-observ.to_csv('./joined_understorey_observations.csv', index=False)
+# observ.to_csv('./joined_understorey_observations.csv', index=False)
 
+
+###########################################
+# Try to narrow # of life form categories #
+###########################################
+
+observ_to_fix = observ.loc[observ['Life Form'].isin(pd.unique(flora2['Life Form']))]
+
+species_to_rematch = pd.unique(observ_to_fix['Scientific Name'])
 
 
