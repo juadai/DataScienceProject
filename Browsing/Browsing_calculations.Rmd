@@ -20,7 +20,7 @@ Current issue:
 
 # Import data
 ```{r}
-data=read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Data/joined_understorey_observations.csv")
+data=read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Github/data/joined_understorey_observations.csv")
 head(data)
 focused_data=data[data$Plot_number %in% c(7,9,10,12),]#only retain data from plots 7,9,10,12
 
