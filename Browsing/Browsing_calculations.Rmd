@@ -1,0 +1,174 @@
+---
+title: "Browsing calculations"
+author: "Chayanit Jaroonsophonsak"
+date: "27/07/2022"
+output: word_document
+---
+
+Note: Only plots 7(T2), 9(T2), 10(T1), and 12(T1) have fenced quadrats. 
+So, we are only able to test the effect of browsing exclusion between these 2 treatments, but not the control
+
+Note2: even quadrats are fenced, odd quadrats are unfenced 
+
+Current issue:
+1. Y3-6 richness H1: heavy left tail NB GLM
+2. Y0-6 richness H1: heavy left tail NB GLM
+3. Y3-6 richness H2: heavy left tail NB GLM
+4. Y0-6 richness H2: heavy left tail NB GLM
+5. Y0-3 diversity H1: light left tail LM
+6. Y0-6 diversity H2: heavy tails LM
+
+# Import data
+```{r}
+data=read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Data/joined_understorey_observations.csv")
+head(data)
+focused_data=data[data$Plot_number %in% c(7,9,10,12),]#only retain data from plots 7,9,10,12
+
+Y0_data=focused_data[focused_data$Year_monitoring==0,]
+Y3_data=focused_data[focused_data$Year_monitoring==3,]
+Y6_data=focused_data[focused_data$Year_monitoring==6,]
+```
+
+# Species richness
+```{r}
+#calculate species richness in each quadrat each year 
+library(dplyr)
+Y0_rich=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y0_data[Y0_data$Plot_number==i & Y0_data$Quadrat_number==j,]
+    count_scientifname <- dataset %>% count(Scientific.Name)
+    a=nrow(count_scientifname)
+    Y0_rich=append(Y0_rich,a)
+  }
+}
+Y0_rich
+
+Y3_rich=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y3_data[Y3_data$Plot_number==i & Y3_data$Quadrat_number==j,]
+    count_scientifname <- dataset %>% count(Scientific.Name)
+    a=nrow(count_scientifname)
+    Y3_rich=append(Y3_rich,a)
+  }
+}
+Y3_rich
+
+Y6_rich=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y6_data[Y6_data$Plot_number==i & Y6_data$Quadrat_number==j,]
+    count_scientifname <- dataset %>% count(Scientific.Name)
+    a=nrow(count_scientifname) 
+    Y6_rich=append(Y6_rich,a)
+  }
+}
+Y6_rich
+
+#Calculate changes in species richness
+Y03_rich=Y3_rich-Y0_rich 
+Y03_rich 
+
+Y36_rich=Y6_rich-Y3_rich
+Y36_rich 
+
+Y06_rich=Y6_rich-Y0_rich
+Y06_rich
+
+#Extract in gap/ out of gap information
+Quadrat_gap={}
+for (i in c(7,9,10,12)){
+  for (j in seq(1,32,1)){
+    gap=toString(unique(Y0_data[Y0_data$Plot_number==i & Y0_data$Quadrat_number==j,]$Quadrat_gap))
+    Quadrat_gap=append(Quadrat_gap,gap)
+  }
+}
+Quadrat_gap
+length(Quadrat_gap)
+
+
+#Generate a dataframe for the changes in species richness 
+Time=rep(c('0-3','3-6','0-6'),c(128,128,128))
+Plot_number=rep(rep(c(7,9,10,12),c(32,32,32,32)),3)
+Treatment=rep(rep(c("Radial","Gap"),c(64,64)),3)
+Quadrat_number=rep(seq(1,32,1),12)
+Quadrat_fenced=rep(c('False','True'),192)
+Quadrat_gap=rep(Quadrat_gap,3)
+Richness_change=c(Y03_rich,Y36_rich, Y06_rich)
+rich_df=data.frame(Time, Plot_number, Treatment, Quadrat_number, Quadrat_fenced, Quadrat_gap, Richness_change)
+write.csv(rich_df,"/Users/tat/Documents/Data Science Sem 3/Project 2/Github/data_generated/richness_calculation.csv", row.names = TRUE)
+```
+
+# Species diversity (Shannon's diversity index)
+*First idea was to use (num of specific species)/(num of total unique species) but...
+* It seems to make more sense(?) if p is calculated by score(species i)/(total score in the quadrat)
+reference: http://www.bioline.org.br/pdf?st09043
+
+```{r}
+#Calculate Shannon's diversity index
+
+Shannon <- function (vector) {
+  
+  # Define corresponding abundance value for each score
+  Abundance = c(0.5, 3, 7.5, 15, 25, 35, 45, 55, 65, 75, 85) / 100
+  names(Abundance) = c('0.5', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10')
+  
+  scores = as.character(vector)
+  
+  # Vector containing abundance of each species
+  a = Abundance[scores]
+
+  # Vector containing abundance of each species as a proportion of total
+  p = a/sum(a)
+  
+  # Apply formula for Shannon's Diversity Index
+  return(-sum(log(p)*p))
+}
+
+Y0_div=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y0_data[Y0_data$Plot_number==i & Y0_data$Quadrat_number==j,]
+    shannon_di=Shannon(dataset$Score)
+    Y0_div=append(Y0_div,shannon_di)
+  }
+}
+Y0_div
+
+Y3_div=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y3_data[Y3_data$Plot_number==i & Y3_data$Quadrat_number==j,]
+    shannon_di=Shannon(dataset$Score)
+    Y3_div=append(Y3_div,shannon_di)
+  }
+}
+Y3_div
+
+Y6_div=c()
+for (i in c(7,9,10,12))
+  {for (j in seq(1,32,1))
+    {dataset=Y6_data[Y6_data$Plot_number==i & Y6_data$Quadrat_number==j,]
+    shannon_di=Shannon(dataset$Score)
+    Y6_div=append(Y6_div, shannon_di)
+  }
+}
+Y6_div
+
+# Calculate changes in species diversity
+Y03_div=Y3_div-Y0_div
+Y03_div
+
+Y36_div=Y6_div-Y3_div
+Y36_div
+
+Y06_div=Y6_div-Y0_div
+Y06_div
+
+#Generate a dataframe for the changes in species diversity
+Diversity_change=c(Y03_div,Y36_div,Y06_div)
+div_df=data.frame(Time, Plot_number, Treatment, Quadrat_number, Quadrat_fenced, Quadrat_gap, Diversity_change)
+write.csv(div_df,"/Users/tat/Documents/Data Science Sem 3/Project 2/Github/data_generated/ShannonDI_calculation.csv", row.names = TRUE)
+```
+
