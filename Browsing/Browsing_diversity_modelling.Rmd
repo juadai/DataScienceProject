@@ -7,7 +7,7 @@ output: word_document
 
 # Import data
 ```{r}
-div_df = read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Github/data_generated/ShannonDI_calculation.csv")
+div_df = read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Github/Browsing/data_generated/ShannonDI_calculation.csv")
 head(div_df)
 ```
 
@@ -51,6 +51,7 @@ plot(density(div_fenced_06$Diversity_change), main = "Probability density of the
 # Linear model
 div_03_lm_a=glm(Diversity_change~Treatment+Quadrat_gap, div_fenced_03,family=gaussian)
 summary(div_03_lm_a)
+par(mfrow = c(2, 2))
 plot(div_03_lm_a)
 div_03_lm_b=lm(Diversity_change~Quadrat_gap, div_fenced_03)
 summary(div_03_lm_b)
