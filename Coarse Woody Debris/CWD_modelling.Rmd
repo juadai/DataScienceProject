@@ -15,113 +15,140 @@ CWDdata$difference = CWDdata$year.6 - CWDdata$year.0
 ```
 
 
+## visualisation 
+```{r visualisation, echo = TRUE}
+hist(CWDdata$difference)
+plot(CWDdata$difference, col = factor(CWDdata$treatment))
+legend("topleft", legend = c("Gap", "COntrol", "Radial"), col=factor(CWDdata$treatment), pch=1)
+boxplot(CWDdata$difference~CWDdata$treatment, xlab="Treatment", ylab="CWD difference", main="CWD difference against different treatments")
+
+```
+
 ## Gussian model fitting
-
-The scale-location plot shows an increasing trend, it states the heteroskedasticity, that is the spread of the residuals is not equal, and the cook’s distance shows that the point 3 are a significant influential point. All 3, 5, 9 are outliers, and all of them are from treatment Radial. Treatment radial is statistically significant in this case, and treatment Gap is not.
-```{r guassian_identity, echo = TRUE}
-# model using gaussian
-model = glm(difference ~ treatment, family = gaussian, data = CWDdata)
-summary(model)
-
-par(mfrow = c(2,2))
-
-plot(model)
-```
-
-create data:
-(1)removal of plot 3; 
-(2)removal of plot 6; 
-(3)adding a constant.
+reform data with following two precedures:
+(1)adding a constant.
+(2)removal of plot 3; 
 ```{r data_redefinition, echo=FALSE}
-CWDdatarm3 = CWDdata[-c(3),]
-CWDdatarm6 = CWDdata[-c(6),]
 CWDdata["abs_diff"] = CWDdata["difference"] + abs(min(CWDdata["difference"])) + 1
+CWDdatarm3 = CWDdata[-c(3),]
 ```
 
-
-Then we tried to **remove the plot 3(most significant outlier)**, the outstanding outliers become 8,9,12, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment and radial treatment become significant now, and AIC is smaller than before.
+The scale-location plot shows an increasing trend, it states the heteroskedasticity, that is the spread of the residuals is not equal, and the cook’s distance shows that the point 3 are a significant influential point. Treatment radial is statistically significant in this case, and treatment Gap is not. the outstanding outliers become 8,9,12, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment become significant now, and AIC is smaller than before.
 ```{r guassian_remove_plot3, echo=FALSE}
 #guassian model + plot3 removed
-modelrm = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
-summary(modelrm)
+guass.model = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
+summary(guass.model)
+
 
 par(mfrow = c(2,2))
-plot(modelrm)
-# the plot here shows that the plot 3, 5, 9 are always outliers, but all of 
-# them are from the radial treatment
+plot(guass.model)
+
+pure.guass.model <- glm(difference ~ 1 , family = gaussian, data = CWDdatarm3)
+anova( pure.guass.model, guass.model, test = "F")
+# the plot here shows that the plot 8,9,12 are always outliers, since the F-stat is <0.05, we will reject the null at 5% significance level, so the treatment is useful in predicting the difference, both of them are positive, so an increasing in the difference is indicated
 ```
 
 
 
 ## Poisson model fitting
 
-The poisson model cannot be used directly, since the one of the difference in CWD is -6.5, so if we want to fit the poisson model, we have to convert all different to positive by adding a constant in r.(pros: no information is lost + we only care the direction rather than the magnitude) this time the scale-location model still shows an increasing trend. All the coefficient is statistically significant and positive.
+The poisson model cannot be used directly, since the one of the difference in CWD is -6.5, so if we want to fit the poisson model, we have to convert all different to positive by adding a constant in r.(pros: no information is lost + we only care the direction rather than the magnitude) this time the scale-location model still shows an increasing trend. All the coefficient is statistically significant and positive. 
 ```{r poisson_abs_diff, echo=FALSE}
 # model using poisson + abs_diff
-model0 = glm(abs_diff ~ treatment, family = poisson, data = CWDdata)
-summary(model0)
+#Poisson GLM
 
+#visualisation and test if the data is poisson
+hist(CWDdatarm3$abs_diff)
+library(fitdistrplus)
+new_abs_diff <- ceiling(CWDdatarm3$abs_diff) # scale it to fit the poisson model
+poisson.model1=fitdist(new_abs_diff , "pois")
+poisson.model1
+poisson.lambda=poisson.model1$estimate
+plot(poisson.model1)
+
+n=length(new_abs_diff)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(new_abs_diff), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+#fit the model
+model0 = glm(new_abs_diff ~ treatment, family = poisson, data = CWDdatarm3)
+summary(model0)
 par(mfrow = c(2,2))
 plot(model0)
+#goodness of fit
+qchisq(0.95,8)
+library(msme)
+P__disp(model0)
+#adequate, but the dispersion is far greater than 1, so we need to fit the quasipoisson model
 
-```
 
-
-Then we tried to remove the only negative value, it does not make much difference compared to the absolute value transformation (magnitude is smaller than before for both treatment), but all the coefs becomes statistically significant.
-```{r poisson_remove_plot6, echo=FALSE}
-# model using poisson + difference
-model1 = glm(difference ~ treatment, family = poisson, data = CWDdatarm6)
+model1 <- glm(new_abs_diff ~ treatment, family = quasipoisson, data = CWDdatarm3)
 summary(model1)
-
 par(mfrow = c(2,2))
 plot(model1)
+#goodness of fit
+qchisq(0.95,model1$df.residual)
+library(msme)
+P__disp(model1)
+
+
 ```
 
+## Negative binomial fitting
+```{r negative_binomial, echo = TRUE}
+# model using negative binomial + abs_diff
+#Negative Binomial GLM
 
-## Quasi-poisson model fitting
+#visualisation and test if the data is poisson
+nb.model1=fitdist(new_abs_diff, "nbinom")
+nb.model1
+nb.size=nb.model1$estimate[1]
+nb.mu = nb.model1$estimate[2]
+nb.prob=nb.size/(nb.size+nb.mu) 
+plot(nb.model1)
 
-The quansi-poisson cannot be used directly, we use adding a constant to further fit into the quasi-poisson model to resolve the overdispersion problem, the scale-location still shows an increasing trend, the outlier this time is point 3,5,9, and all of them are from the treatment Radial. But all the coefficients are not significant but are positive. 
-```{r quasi_poisson, echo=FALSE}
-## quasipoisson + diff
-model2 = glm(abs_diff ~ treatment, family = quasipoisson, data = CWDdata)
+n=length(new_abs_diff)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(new_abs_diff), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+model2 = glm.nb(new_abs_diff ~ treatment, data = CWDdatarm3)
 summary(model2)
-
 par(mfrow = c(2,2))
 plot(model2)
+#goodness of fit
+qchisq(0.95,8)
+library(msme)
+P__disp(model2)
+# both coefficient is positive and significant, but the pearson coefficient is less than 15.51, so we fail to reject them from this perpective
 ```
-
-
 
 ## Gamma model fitting
 
-The Gamma also takes no negative values, we first fit the inverse link function, the outliers are 3(Radial), 6(C),11(C), and no significant points are presented, but the normal QQ plot is left-skewed, and the scale-location is showed a decreasing trend first and then increasing trend. All the coefficients from the model are positive but not statistically significant. But the AIC is the lowest among all the models.
+The Gamma also takes no negative values, we first fit the inverse link function, the outliers are 9(Radial), 6(C),11(C), and no significant points are presented, but the normal QQ plot is left-skewed, and the scale-location is showed an increasing trend . All the coefficients from the model are negative but not statistically significant. But the AIC is the lowest among all the models.
 ```{r gamma_diff_inverse, echo=FALSE}
 ## Gamma + abs_diff + inverse
-model3 = glm(abs_diff ~ treatment, family = Gamma(link = "inverse"), data = CWDdata)
+new_abs_diff <- ceiling(CWDdatarm3$abs_diff) # scale it to fit the gamma model
+gamma.model1=fitdist(new_abs_diff , "gamma")
+gamma.model1
+gamma.alpha=gamma.model1$estimate[1]
+gamma.beta =gamma.model1$estimate[2]
+plot(gamma.model1)
+
+n=length(new_abs_diff)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(new_abs_diff), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+model3 = glm(new_abs_diff ~ treatment, family = Gamma(link = "inverse"), data = CWDdatarm3)
 summary(model3)
 
 par(mfrow = c(2,2))
 plot(model3)
-```
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model3)
+# model fit is ok, but worse than the poisson, and fail to reject the null
 
-
-Since the model has lowest AIC with the maximum information we can remained, so we further fit the log link function for it. This time the outlier become 3,6,11, all three coefs are statistically significant at 95% significance level but some violation about the model assumption.
-```{r gamma_diff_log, echo=FALSE}
-## Gamma + abs_diff + log
-model5 = glm(abs_diff ~ treatment, family = Gamma(link = "log"), data = CWDdata)
-summary(model5)
-
-par(mfrow = c(2,2))
-plot(model5)
-```
-
-
-The gamma log model which removed the plot3 data clearly perform better than the previous model, but the plot 11 is influential and 6,9,11 are outliers.
-```{r gamma_rmplot3, echo=FALSE}
-## Gamma + abs_diff + log
-model6 = glm(abs_diff ~ treatment, family = Gamma(link = "log"), data = CWDdatarm3)
-summary(model6)
-
-par(mfrow = c(2,2))
-plot(model6)
 ```
