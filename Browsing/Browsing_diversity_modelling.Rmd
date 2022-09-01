@@ -7,7 +7,7 @@ output: word_document
 
 # Import data
 ```{r}
-div_df = read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Data/ShannonDI_calculation.csv")
+div_df = read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Github/data_generated/ShannonDI_calculation.csv")
 head(div_df)
 ```
 
