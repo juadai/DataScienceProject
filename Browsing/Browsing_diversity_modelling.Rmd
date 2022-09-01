@@ -1,0 +1,454 @@
+---
+title: "Browsing_diversity_modelling"
+author: "Chayanit Jaroonsophonsak"
+date: '2022-08-31'
+output: word_document
+---
+
+# Import data
+```{r}
+div_df = read.csv("/Users/tat/Documents/Data Science Sem 3/Project 2/Github/data_generated/ShannonDI_calculation.csv")
+head(div_df)
+```
+
+# H: Removal of browsing will cause a greater increase in understorey species diversity in T1 as compared to T2 
+## Visualisation
+```{r}
+#Year 0 to 3
+div_fenced_03=div_df[div_df$Time=="0-3" & div_df$Quadrat_fenced=="True",]
+plot(div_fenced_03$Diversity_change, xlab="16 fenced quadrats for each plot: 7, 9, 10, 12", ylab="change in species diversity", main="Change in species diversity from Y0 to Y3 after browsing exclusion", col=factor(div_fenced_03$Treatment))
+abline(h=0, lty=2)
+legend("bottomright", legend = paste(c("T1","T2")), col=c("black","red"), pch=1)
+
+boxplot(div_fenced_03$Diversity_change~div_fenced_03$Treatment, xlab="Treatment", ylab="Change in species diversity", main="Change in species diversity from Y0 to Y3 after browsing exclusion")
+
+plot(density(div_fenced_03$Diversity_change), main = "Probability density of the change in species diversity from Y0 to Y3", xlab="Change in species diversity")
+
+#Year 3 to 6
+div_fenced_36=div_df[div_df$Time=="3-6" & div_df$Quadrat_fenced=="True",]
+plot(div_fenced_36$Diversity_change, xlab="16 fenced quadrats for each plot: 7, 9, 10, 12", ylab="change in species diversity", main="Change in species diversity from Y3 to Y6 after browsing exclusion", col=factor(div_fenced_36$Treatment))
+abline(h=0, lty=2)
+legend("bottomright", legend = paste(c("T1","T2")), col=c("black","red"), pch=1)
+
+boxplot(div_fenced_36$Diversity_change~div_fenced_36$Treatment, xlab="Treatment", ylab="Change in species diversity", main="Change in species diversity from Y3 to Y6 after browsing exclusion")
+
+plot(density(div_fenced_36$Diversity_change), main = "Probability density of the change in species diversity from Y3 to Y6", xlab="Change in species diversity")
+
+#Year 0 to 6
+div_fenced_06=div_df[div_df$Time=="0-6" & div_df$Quadrat_fenced=="True",]
+plot(div_fenced_06$Diversity_change, xlab="16 fenced quadrats for each plot: 7, 9, 10, 12", ylab="change in species diversity", main="Change in species diversity from Y0 to Y6 after browsing exclusion", col=factor(div_fenced_06$Treatment))
+abline(h=0, lty=2)
+legend("bottomright", legend = paste(c("T1","T2")), col=c("black","red"), pch=1)
+
+boxplot(div_fenced_06$Diversity_change~div_fenced_06$Treatment, xlab="Treatment", ylab="Change in species diversity", main="Change in species diversity from Y0 to Y6 after browsing exclusion")
+
+plot(density(div_fenced_06$Diversity_change), main = "Probability density of the change in species diversity from Y0 to Y6", xlab="Change in species diversity")
+```
+
+## Modelling
+### Year 0 to 3 (Choose linear model*)
+```{r}
+# Linear model
+div_03_lm_a=glm(Diversity_change~Treatment+Quadrat_gap, div_fenced_03,family=gaussian)
+summary(div_03_lm_a)
+plot(div_03_lm_a)
+div_03_lm_b=lm(Diversity_change~Quadrat_gap, div_fenced_03)
+summary(div_03_lm_b)
+anova(div_03_lm_b,div_03_lm_a)
+#there's an evidence that Treatment is significant (i.e. gap treatment has more positive impact on species diversity)
+#but not sure if the fit is good enough (data has lighter left tail) 
+```
+
+```{r}
+# Gamma and Inverse Gaussian GLM
+#manipulate data by adding a constant to every y, so that they are all positive
+d=min(div_fenced_03$Diversity_change)-0.0001 #-0.0001 so that y is not 0 
+div_fenced_03$Diversity_change_pos=div_fenced_03$Diversity_change + abs(d)
+
+#visualisation and test if the data is gamma or inverse Gaussian
+plot(density(div_fenced_03$Diversity_change_pos))
+#Unlikely to be gamma cause it's not positively skewed
+gamma.model=fitdist(div_fenced_03$Diversity_change_pos,"gamma",method=c("mle"))
+gamma.model
+plot(gamma.model)
+#looking terrible
+
+
+#fit the model (Gamma)
+div_03_gamma_a=glm(Diversity_change_pos~Treatment+Quadrat_gap, div_fenced_03, family = Gamma)
+summary(div_03_gamma_a)
+div_03_gamma_b=glm(Diversity_change_pos~Treatment, div_fenced_03, family = Gamma)
+summary(div_03_gamma_b)
+#goodness of fit
+qchisq(0.95,62)
+#adequate 
+glm.diag.plots((div_03_gamma_b))
+#So, choose linear model
+```
+### try incorporate random effects
+```{r}
+library(lme4)
+div_03_lmm_a=lmer(Diversity_change~Treatment+Quadrat_gap+(1|Plot_number/Quadrat_number), data=div_fenced_03, REML = FALSE)
+#Error: number of levels of each grouping factor must be < number of observations
+
+div_03_lmm_b=lmer(Diversity_change~Treatment+Quadrat_gap+(1|Plot_number), data=div_fenced_03, REML = FALSE)
+summary(div_03_lmm_b)
+coef(div_03_lmm_b)
+#Plot_number has insignificant random effect
+#Choose normal LM
+```
+
+### Year 3 to 6 (Choose linear model)
+```{r}
+# Linear model
+div_36_lm_a=lm(Diversity_change~Treatment+Quadrat_gap, div_fenced_36)
+summary(div_36_lm_a) #choose this
+plot(div_36_lm_a)
+#the fit looks moderately good
+
+div_36_lm_b=lm(Diversity_change~Quadrat_gap, div_fenced_36)
+summary(div_36_lm_b)
+anova(div_36_lm_b,div_36_lm_a)
+#Treatment is not significant
+```
+
+```{r}
+# Gamma GLM
+#manipulate data by adding a constant to every y, so that they are all positive
+e=min(div_fenced_36$Diversity_change)-0.0001 #-0.0001 so that y is not 0 
+div_fenced_36$Diversity_change_pos=div_fenced_36$Diversity_change + abs(e)
+
+#visualisation and test if the data is gamma
+plot(density(div_fenced_36$Diversity_change_pos))
+
+gamma.model2=fitdist(div_fenced_36$Diversity_change_pos,"gamma",method=c("mle"))
+gamma.model2
+plot(gamma.model2)
+#looking quite bad
+
+#fit the model (Gamma)
+div_36_gamma_a=glm(Diversity_change_pos~Treatment+Quadrat_gap, div_fenced_36, family = Gamma)
+glm.diag.plots(div_36_gamma_a)
+summary(div_36_gamma_a)
+#goodness of fit
+qchisq(0.95,61)
+#adequate, but the fit looks worse than LM
+
+div_36_gamma_b=glm(Diversity_change_pos~Quadrat_gap, div_fenced_36, family = Gamma)
+summary(div_36_gamma_b)
+anova(div_36_gamma_b, div_36_gamma_a)
+qchisq(0.95,1)
+#Treatment is not significant
+```
+
+### try incorporate random effects
+```{r}
+div_36_lmm_a=lmer(Diversity_change~Treatment+Quadrat_gap+(1|Plot_number/Quadrat_number), data=div_fenced_36, REML = FALSE)
+#Error: number of levels of each grouping factor must be < number of observations
+
+div_36_lmm_b=lmer(Diversity_change~Treatment+Quadrat_gap+(1|Plot_number), data=div_fenced_36, REML = FALSE)
+summary(div_36_lmm_b)
+coef(div_36_lmm_b)
+#Plot_number has insignificant random effect
+#Choose normal LM
+```
+
+### Year 0 to 6 (Choose linear model)
+```{r}
+# Linear model
+div_06_lm_a=glm(Diversity_change~Treatment + Quadrat_gap, div_fenced_06, family = gaussian)
+summary(div_06_lm_a) #choose this 
+plot(div_06_lm_a)
+#quite good fit
+
+div_06_lm_b=lm(Diversity_change~Quadrat_gap, div_fenced_06)
+summary(div_06_lm_b)
+anova(div_06_lm_b,div_06_lm_a)
+#Treatment is not significant
+```
+
+```{r}
+# Gamma GLM
+#manipulate data by adding a constant to every y, so that they are all positive
+f=min(div_fenced_06$Diversity_change)-0.000001 #-0.0001 so that y is not 0 
+div_fenced_06$Diversity_change_pos=div_fenced_06$Diversity_change + abs(f)
+
+#visualisation and test if the data is gamma
+plot(density(div_fenced_06$Diversity_change_pos))
+
+gamma.model3=fitdist(div_fenced_06$Diversity_change_pos,"gamma",method=c("mle"))
+gamma.model3
+plot(gamma.model3)
+#looking quite bad 
+
+#fit the model (Gamma)
+div_06_gamma_a=glm(Diversity_change_pos~Treatment+Quadrat_gap, div_fenced_06, family = Gamma)
+summary(div_06_gamma_a)
+#goodness of fit
+qchisq(0.95,61)
+#adequate 
+glm.diag.plots(div_06_gamma_a)
+
+div_06_gamma_b=glm(Diversity_change_pos~Quadrat_gap, div_fenced_06, family = Gamma)
+summary(div_06_gamma_b)
+#adequate
+#Treatment is not significant
+#worse fit than LM
+```
+
+### try incorporate random effects
+```{r}
+div_06_lmm_a=lmer(Diversity_change~Treatment+Quadrat_gap+(1|Plot_number/Quadrat_number), data=div_fenced_06, REML = FALSE)
+#Error: number of levels of each grouping factor must be < number of observations
+
+div_06_lmm_b=lmer(Diversity_change~Treatment+Quadrat_gap+(1|Plot_number), data=div_fenced_06, REML = FALSE)
+summary(div_06_lmm_b)
+coef(div_06_lmm_b)
+#Plot_number has insignificant random effect
+#Choose normal LM
+```
+
+# H: Removal of Browsing will cause Species diversity to be higher across all treatments (T1 & T2)
+## Visualisation
+```{r}
+#Year 0 to 3
+div_03_df=div_df[div_df$Time=="0-3",]
+plot(div_03_df$Diversity_change, xlab="32 quadrats for each plot: 7, 9, 10, 12", ylab="change in species diversity", main="Change in species diversity in fenced and unfenced quadrats from Y0 to Y3 ", col=factor(div_03_df$Quadrat_fenced))
+abline(h=0, lty=2)
+legend("bottomright", legend = paste(c("unfenced","fenced")), col=c("black","red"), pch=1)
+
+boxplot(div_03_df$Diversity_change~div_03_df$Quadrat_fenced, xlab="Fenced quadrat?", ylab="Change in species diversity", main="Change in species diversity from Y0 to Y3")
+
+library(ggplot2)
+ggplot(div_03_df, aes(x=Diversity_change, color=Quadrat_fenced)) + geom_histogram(fill="white", position="dodge") + theme(legend.position="top")
+
+#Year 3 to 6
+div_36_df=div_df[div_df$Time=="3-6",]
+plot(div_36_df$Diversity_change, xlab="32 quadrats for each plot: 7, 9, 10, 12", ylab="change in species diversity", main="Change in species diversity in fenced and unfenced quadrats from Y3 to Y6 ", col=factor(div_36_df$Quadrat_fenced))
+abline(h=0, lty=2)
+legend("bottomright", legend = paste(c("unfenced","fenced")), col=c("black","red"), pch=1)
+
+boxplot(div_36_df$Diversity_change~div_36_df$Quadrat_fenced, xlab="Fenced quadrat?", ylab="Change in species diversity", main="Change in species diversity from Y3 to Y6")
+
+ggplot(div_36_df, aes(x=Diversity_change, color=Quadrat_fenced)) + geom_histogram(fill="white", position="dodge") + theme(legend.position="top")
+
+#Year 0 to 6
+div_06_df=div_df[div_df$Time=="0-6",]
+plot(div_06_df$Diversity_change, xlab="32 quadrats for each plot: 7, 9, 10, 12", ylab="change in species diversity", main="Change in species diversity in fenced and unfenced quadrats from Y0 to Y6 ", col=factor(div_06_df$Quadrat_fenced))
+abline(h=0, lty=2)
+legend("bottomright", legend = paste(c("unfenced","fenced")), col=c("black","red"), pch=1)
+
+boxplot(div_06_df$Diversity_change~div_06_df$Quadrat_fenced, xlab="Fenced quadrat?", ylab="Change in species diversity", main="Change in species diversity from Y0 to Y6")
+
+ggplot(div_06_df, aes(x=Diversity_change, color=Quadrat_fenced)) + geom_histogram(fill="white", position="dodge") + theme(legend.position="top")
+```
+
+## Modelling
+### Year 0 to 3 (Choose Linear model)
+```{r}
+# Linear model
+div_03_lm_h2a=lm(Diversity_change~Quadrat_fenced+Treatment+Quadrat_gap, div_03_df)
+summary(div_03_lm_h2a)
+plot(div_03_lm_h2a)
+AIC(div_03_lm_h2a)
+
+div_03_lm_h2b=lm(Diversity_change~Quadrat_fenced+Treatment, div_03_df)
+summary(div_03_lm_h2b)
+plot(div_03_lm_h2b) #choose this
+AIC(div_03_lm_h2b)
+
+div_03_lm_h2c=lm(Diversity_change~Treatment, div_03_df)
+summary(div_03_lm_h2c)
+plot(div_03_lm_h2c)
+anova(div_03_lm_h2c,div_03_lm_h2b)
+#Quadrat_fenced is not significant 
+```
+
+```{r}
+# Gamma GLM
+#manipulate data by adding a constant to every y, so that they are all positive
+t=min(div_03_df$Diversity_change)-0.0001 #-0.0001 so that y is not 0 
+div_03_df$Diversity_change_pos=div_03_df$Diversity_change + abs(t)
+
+#visualisation and test if the data is gamma or inverse Gaussian
+plot(density(div_03_df$Diversity_change_pos))
+gamma.model4=fitdist(div_03_df$Diversity_change_pos,"gamma",method=c("mle"))
+gamma.model4
+plot(gamma.model4)
+#looking worse than linear model
+
+#fit the model (Gamma)
+div_03_gamma_h2a=glm(Diversity_change_pos~Quadrat_fenced+Treatment+Quadrat_gap, div_03_df, family = Gamma)
+summary(div_03_gamma_h2a)
+#goodness of fit
+qchisq(0.95,124)
+#adequate
+
+div_03_gamma_h2b=glm(Diversity_change_pos~Quadrat_fenced+Treatment, div_03_df, family = Gamma)
+summary(div_03_gamma_h2b)
+#goodness of fit
+qchisq(0.95,125)
+#adequate
+glm.diag.plots(div_06_gamma_b)
+#looking worse than LM
+
+div_03_gamma_h2c=glm(Diversity_change_pos~Treatment, div_03_df, family = Gamma)
+summary(div_03_gamma_h2c)
+#goodness of fit
+qchisq(0.95,126)
+#adequate
+
+anova(div_03_gamma_h2c,div_03_gamma_h2b)
+#Quadrat_gap not significant
+```
+
+### try incorporate random effects
+```{r}
+div_06_lmm_h2a=lmer(Diversity_change~Quadrat_fenced+Treatment+(1|Plot_number/Quadrat_number), data=div_03_df, REML = FALSE)
+#Error: number of levels of each grouping factor must be < number of observations
+
+div_06_lmm_h2b=lmer(Diversity_change~Quadrat_fenced+Treatment+(1|Plot_number), data=div_03_df, REML = FALSE)
+summary(div_06_lmm_h2b)
+coef(div_06_lmm_h2b)
+#Plot_number has insignificant random effect
+#Choose normal LM
+```
+
+### Year 3 to 6 (Choose Linear model) 
+```{r}
+# Linear model
+div_36_lm_h2a=lm(Diversity_change~Quadrat_fenced+Treatment+Quadrat_gap, div_36_df)
+summary(div_36_lm_h2a) #choose this
+plot(div_36_lm_h2a) #good fit
+AIC(div_36_lm_h2a)
+
+div_36_lm_h2b=lm(Diversity_change~Treatment+Quadrat_gap, div_36_df)
+summary(div_36_lm_h2b)
+plot(div_36_lm_h2b)
+AIC(div_36_lm_h2b)
+
+anova(div_36_lm_h2b,div_36_lm_h2a)
+#Quadrat_fenced is not significant
+```
+
+```{r}
+# Gamma GLM
+#manipulate data by adding a constant to every y, so that they are all positive
+s=min(div_36_df$Diversity_change)-0.0001 #-0.0001 so that y is not 0 
+div_36_df$Diversity_change_pos=div_36_df$Diversity_change + abs(s)
+
+#visualisation and test if the data is gamma
+plot(density(div_36_df$Diversity_change_pos))
+#Unlikely to be gamma cause it's not positively skewed
+gamma.model5=fitdist(div_36_df$Diversity_change_pos,"gamma",method=c("mle"))
+gamma.model5
+plot(gamma.model5)
+#looking worse than linear model
+
+#fit the model (Gamma)
+div_36_gamma_h2a=glm(Diversity_change_pos~Quadrat_fenced+Treatment+Quadrat_gap, div_36_df, family = Gamma)
+summary(div_36_gamma_h2a)
+#goodness of fit
+qchisq(0.95,124)
+#adequate
+
+div_36_gamma_h2b=glm(Diversity_change_pos~Treatment+Quadrat_gap, div_36_df, family = Gamma)
+summary(div_36_gamma_h2b)
+#goodness of fit
+qchisq(0.95,125)
+#adequate
+glm.diag.plots(div_36_gamma_h2b)
+
+anova(div_36_gamma_h2b,div_36_gamma_h2a)
+qchisq(0.95,1)
+#Quadrat_gap not significant
+#worse fit than LM
+```
+
+### try incorporate random effects
+```{r}
+div_36_lmm_h2a=lmer(Diversity_change~Quadrat_fenced+Treatment+Quadrat_gap+(1|Plot_number/Quadrat_number), data=div_36_df, REML = FALSE)
+#Error: number of levels of each grouping factor must be < number of observations
+
+div_36_lmm_h2b=lmer(Diversity_change~Quadrat_fenced+Treatment+Quadrat_gap+(1|Plot_number), data=div_36_df, REML = FALSE)
+summary(div_36_lmm_h2b)
+coef(div_36_lmm_h2b)
+#Plot_number has some random effect (small)
+library(RLRsim)
+exactRLRT(div_36_lmm_h2b)
+#Reference : https://www.ssc.wisc.edu/sscc/pubs/MM/MM_TestEffects.html#test-of-random-parameters
+#The variance is not significant
+#Choose normal LM (it also has lower AIC)
+```
+
+### Year 0 to 6 (Choose Linear model*)
+```{r}
+# Linear model
+div_06_lm_h2a=lm(Diversity_change~Quadrat_fenced+Treatment+Quadrat_gap, div_06_df)
+summary(div_06_lm_h2a)
+plot(div_06_lm_h2a)
+
+div_06_lm_h2b=lm(Diversity_change~Quadrat_fenced+Quadrat_gap, div_06_df)
+summary(div_06_lm_h2b) #choose this
+plot(div_06_lm_h2b) 
+#data looks a bit heavier tailed than LM
+AIC(div_06_lm_h2b)
+
+div_06_lm_h2c=lm(Diversity_change~Quadrat_gap, div_06_df)
+summary(div_06_lm_h2c)
+anova(div_06_lm_h2c,div_06_lm_h2b)
+#Quadrat_fenced is not significant
+```
+
+```{r}
+# Gamma GLM
+#manipulate data by adding a constant to every y, so that they are all positive
+r=min(div_06_df$Diversity_change)-0.0001 #-0.0001 so that y is not 0 
+div_06_df$Diversity_change_pos=div_06_df$Diversity_change + abs(r)
+
+#visualisation and test if the data is gamma
+plot(density(div_06_df$Diversity_change_pos))
+gamma.model6=fitdist(div_06_df$Diversity_change_pos,"gamma",method=c("mle"))
+gamma.model6
+plot(gamma.model6)
+#doesn't look that good
+
+#fit the model (Gamma)
+div_06_gamma_h2a=glm(Diversity_change_pos~Quadrat_fenced+Treatment+Quadrat_gap, div_06_df, family = Gamma)
+summary(div_06_gamma_h2a)
+#goodness of fit
+qchisq(0.95,124)
+#adequate
+
+div_06_gamma_h2b=glm(Diversity_change_pos~Quadrat_fenced+Quadrat_gap, div_06_df, family = Gamma)
+summary(div_06_gamma_h2b)
+#goodness of fit
+qchisq(0.95,125)
+#adequate
+glm.diag.plots(div_06_gamma_h2b)
+
+div_06_gamma_h2c=glm(Diversity_change_pos~Quadrat_gap, div_06_df, family = Gamma)
+summary(div_06_gamma_h2c)
+#goodness of fit
+qchisq(0.95,126)
+#adequate
+
+anova(div_06_gamma_h2c,div_06_gamma_h2b)
+qchisq(0.95,1)
+#Quadrat_gap not significant
+#worse fit than LM
+```
+
+### try incorporate random effects
+```{r}
+div_06_lmm_h2a=lmer(Diversity_change~Quadrat_fenced+Quadrat_gap+(1|Plot_number/Quadrat_number), data=div_06_df, REML = FALSE)
+#Error: number of levels of each grouping factor must be < number of observations
+
+div_06_lmm_h2b=lmer(Diversity_change~Quadrat_fenced+Quadrat_gap+(1|Plot_number), data=div_06_df, REML = FALSE)
+summary(div_06_lmm_h2b)
+coef(div_06_lmm_h2b)
+#Plot_number has some random effect (small)
+exactRLRT(div_06_lmm_h2b)
+#The variance is not significant
+#Choose normal LM (it also has lower AIC)
+```
