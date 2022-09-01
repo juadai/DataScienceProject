@@ -15,9 +15,7 @@ CWDdata$difference = CWDdata$year.6 - CWDdata$year.0
 ```
 
 
-## Gussian model fitting
-
-
+## visualisation 
 ```{r visualisation, echo = TRUE}
 hist(CWDdata$difference)
 plot(CWDdata$difference, col = factor(CWDdata$treatment))
@@ -26,6 +24,7 @@ boxplot(CWDdata$difference~CWDdata$treatment, xlab="Treatment", ylab="CWD differ
 
 ```
 
+## Gussian model fitting
 reform data with following two precedures:
 (1)adding a constant.
 (2)removal of plot 3; 
@@ -153,7 +152,3 @@ P__disp(model3)
 # model fit is ok, but worse than the poisson, and fail to reject the null
 
 ```
-
-
-
-
