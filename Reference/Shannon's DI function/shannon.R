@@ -4,7 +4,7 @@ Shannon <- function (vector) {
   
   # Define corresponding abundance value for each score
   Abundance = c(0.5, 3, 7.5, 15, 25, 35, 45, 55, 65, 75, 85) / 100
-  names(Abundance) = c('0.5', '1', '2', '3', '4', '5', '6', '7', '8')
+  names(Abundance) = c('0.5', '1', '2', '3', '4', '5', '6', '7', '8','9','10')
   
   scores = as.character(vector)
   
