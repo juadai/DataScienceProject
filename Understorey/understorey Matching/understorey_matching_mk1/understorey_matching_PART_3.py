@@ -18,7 +18,7 @@ SCORES = {0.5: [0,1],
 # Import data and discard extra rows #
 ######################################
 
-df = pd.read_csv('../dataset/joined_understorey_observations.csv')
+df = pd.read_csv('../../dataset/joined_understorey_observations.csv')
 
 life_forms = pd.unique(df['Life Form'])
 
@@ -33,6 +33,14 @@ df = df.groupby(by=['Plot_treatment',
                     'Quadrat_fenced',
                     'Quadrat_gap',
                     'Quadrat_number',
+                    'Year_monitoring',
+                    'Life Form']).sum()
+
+
+df = df.groupby(by=['Plot_treatment',
+                    'Plot_number',
+                    'Quadrat_fenced',
+                    'Quadrat_gap',
                     'Year_monitoring',
                     'Life Form']).mean()
 
@@ -49,4 +57,4 @@ for i in df.index:
         matrix.loc[i, lf] = val
 
 matrix.drop_duplicates(inplace=True)
-matrix.to_csv('./outputs/observations_matrix.csv')
+matrix.to_csv('../outputs/observations_matrix2.csv')
