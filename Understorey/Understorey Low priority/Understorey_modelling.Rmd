@@ -8,26 +8,100 @@ output: word_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 setwd("~/Desktop/capstone/analysis/Juan/Understorey_priority2&low")
-
+library(fitdistrplus)
 df = read.csv("understorey_output.csv")
 
 ```
 
-In conclusion, the absolute value of each variable fit the model better, especially the guassian model, and both treatment are statistically significant, but the gap shows a positive effect and radial shows a negative effect, and the plots from the radial give a positive and statistically significant coefficient, which contradicts with the treatment coefficient. beside, the change_rate variable always yields the lowest AIC values among all three dependent variables. The model selection procedures states that the plot number are the only significant variables in predicting the diversity, richness and relative abundance.
+In conclusion, the absolute value of each variable fits the model better, especially the guassian model, and both treatments are statistically significant in guassian model(they are not always statistically significant in all the models fitted). In guassian model and most fitted models, the gap treatment shows a positive effect and radial shows a negative effect, and the plots from the radial give a positive and statistically significant coefficient, which contradicts with the treatment coefficient. beside, the change_rate variable always yields the lowest AIC values among all three dependent variables. The model selection procedures states that the plot number are the only significant variables in predicting the diversity, richness and relative abundance.
 
-## Diversity
-The abs_diversity fit the guassian model states that the treatment Gap has positive effect on abs_diveristy, that is the Gap treatment will increase the species diversity while Radial treatment has a negative effect. However, the radial treatment plots tend to have positive and statistically significant coefficient, which contradict with the treatment coefficient, then we try to exclude the plot number, then all the coefficients become insignificant. we then tried the model selection, all the variable selected are plot number, which indicates that the plot number are the true factor affect the diversity.
-```{r guassian_abs_diversity, echo = TRUE}
-# model using gaussian
-model = glm(abs_diversity ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = gaussian, data = df)
-summary(model)
-par(mfrow = c(2,2))
+Problems:
+1. only compute the difference for diversity, richness and relative abundance between yr0 and yr6, since some records in year3 are missing => the data need to be adjusted + species should be further updated 
 
-plot(model)
+2.information about the **shade tolerant species** currently missing in the data sheet => lifeform? (will be specified later manually)
+3. how to define "increase recruitment of Red Gum eucalypus"? why increase recruitment of Red Gum eucalypus will be test here? (remove the hypothesis testing)
 
+
+
+## visualisation 
+```{r visualisation, echo = TRUE}
+# richness visualisation
+hist(df$abs_richness)
+plotnum <- as.factor(df$Plot_number)
+treatment <- as.factor(df$Treatment)
+plot(df$abs_richness, col = c(seq(1,12, length.out = 12))[as.factor(df$Plot_number)], main = "Scatterplot for richness (Plot_number)") 
+legend("bottomright", legend = c(seq(1,12, length.out = 12)), col = levels(plotnum), pch=1)
+
+plot(df$abs_richness, col = c(seq(1,3, length.out = 3))[as.factor(df$Treatment)], main ="Scatterplot for richness (Treatment)")
+legend("bottomright", legend = c(levels(treatment)), col = seq(1,3, length.out = 3), pch=1)
+
+
+
+boxplot(df$abs_richness~df$Treatment, xlab="Treatment", ylab="Understorey richness difference", main="Absolute Richness difference against different treatments")
+
+```
+```{r visualisation_diversity, echo = TRUE}
+# richness visualisation
+hist(df$abs_diversity)
+plotnum <- as.factor(df$Plot_number)
+treatment <- as.factor(df$Treatment)
+plot(df$abs_diversity, col = c(seq(1,12, length.out = 12))[as.factor(df$Plot_number)], main = "Scatterplot for diveristy (Plot_number)") 
+legend("bottomright", legend = c(seq(1,12, length.out = 12)), col = levels(plotnum), pch=1)
+
+plot(df$abs_diversity, col = c(seq(1,3, length.out = 3))[as.factor(df$Treatment)], main ="Scatterplot for diveristy (Treatment)")
+legend("bottomright", legend = c(levels(treatment)), col = seq(1,3, length.out = 3), pch=1)
+
+
+
+boxplot(df$abs_diversity~df$Treatment, xlab="Treatment", ylab="Understorey diveristy difference", main="Absolute diveristy difference against different treatments")
+
+boxplot(df$abs_diversity~df$Plot_number, xlab="Treatment", ylab="Understorey diveristy difference", main="Absolute diveristy difference against different treatments")
+```
+```{r visualisation_relative_abundance, echo = TRUE}
+# richness visualisation
+hist(df$relative_abundance)
+plotnum <- as.factor(df$Plot_number)
+treatment <- as.factor(df$Treatment)
+plot(df$relative_abundance, col = c(seq(1,12, length.out = 12))[as.factor(df$Plot_number)], main = "Scatterplot for relative abundance (Plot_number)") 
+legend("topright", legend = c(seq(1,12, length.out = 12)), col = levels(plotnum), pch=1)
+
+plot(df$relative_abundance, col = c(seq(1,3, length.out = 3))[as.factor(df$Treatment)], main ="Scatterplot for relative abundance (Treatment)")
+legend("topright", legend = c(levels(treatment)), col = seq(1,3, length.out = 3), pch=1)
+
+
+
+boxplot(df$relative_abundance~df$Treatment, xlab="Treatment", ylab="Understorey relative abundance difference", main="Absolute relative abundance difference against different treatments")
+
+boxplot(df$relative_abundance~df$Plot_number, xlab="Treatment", ylab="Understorey relative abundance difference", main="Absolute relative abundance difference against different treatments")
 ```
 
 
+## Diversity (guassian + abs)
+The abs_diversity fit the guassian model states that the treatment Gap has positive effect on abs_diveristy, that is the Gap treatment will increase the species diversity while Radial treatment has a negative effect. However, the radial treatment plots tend to have positive and statistically significant coefficient, which contradict with the treatment coefficient, then we try to exclude the plot number, then all the coefficients become insignificant. we then tried the model selection, all the variable selected are plot number, which indicates that the plot number are the true factor affect the diversity.
+```{r guassian_abs_diversity, echo = TRUE}
+# model using gaussian
+guas.model=fitdist(df$abs_diversity, "norm")
+guas.model
+guas.mean=guas.model$estimate[1]
+guas.sd =guas.model$estimate[2]
+plot(guas.model)
+
+n=length(df$abs_diversity)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(df$abs_diversity), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+guass.model = glm(abs_diversity ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = gaussian, data = df)
+summary(guass.model)
+par(mfrow = c(2,2))
+
+plot(guass.model)
+pure.guass.model <- glm(abs_diversity ~ 1 , family = gaussian, data = df)
+anova( pure.guass.model, guass.model, test = "F")
+# the coefficients is significant in predicting the abs_diversity 
+```
+
+due to collinearity might cause, we removed the plot number variable
 ```{r guassian_abs_diversity(removed_plot_num), echo = TRUE}
 # model using gaussian
 model_rm = glm(abs_diversity ~ Treatment  + as.factor(Quadrat_number), family = gaussian, data = df)
@@ -35,6 +109,9 @@ summary(model_rm)
 par(mfrow = c(2,2))
 
 plot(model_rm)
+
+anova(pure.guass.model, model_rm, test = "F")
+# both coefficient is not significant in predicting the diversity, the only significant regressor is plot_number
 ```
 
 
@@ -45,100 +122,274 @@ summary(model1)
 par(mfrow = c(2,2))
 
 plot(model1)
+rate.guass.model <- glm(diversity_change_rate ~ 1 , family = gaussian, data = df)
+anova(rate.guass.model, model1, test = "F")
+# significant in 5% significance level
 ```
 The diverity change rate has the lowest AIC value, but it does not fit guassian model well.
 
 The absolute diversity change fit the normal distribution better as all the diagnosis plots state.
+
 Then we will use the AIC to find some significant variable:
 ```{r guassian_AIC_select, echo = TRUE}
 # model using gaussian
 model = glm(abs_diversity ~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = gaussian, data = df)
-model_selected2 <-step(model, scope=~.)
-summary(model_selected2)
+model_selected1 <-step(model, scope=~.)
+summary(model_selected1)
 
 par(mfrow = c(2,2))
-plot(model_selected2)
+plot(model_selected1)
+#The significant variables are the plot number, all other variables are not significant in predicting the diversity
 ```
 
+## Gamma model fitting
+since the change and difference are more like continous variables, so we first fit them with the continuous variable models
 ```{r gamma_relative_diversity, echo = TRUE}
-# model using gamma with inverse link function
-model2 = glm(relative_diversity~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "inverse"), data = df)
+# model using gamma with inverse link function on relative diversity
+gamma.model1=fitdist(df$relative_diversity, "gamma")
+gamma.model1
+gamma.alpha=gamma.model1$estimate[1]
+gamma.beta =gamma.model1$estimate[2]
+plot(gamma.model1)
+
+n=length(df$relative_diversity)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(df$relative_diversity), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+model2 = glm(relative_diversity~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(), data = df)
 summary(model2)
 par(mfrow = c(2,2))
 plot(model2)
 
-# model using gamma with inverse link function
-model3 = glm(abs_diversity + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "inverse"), data = df)
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model2)
+# model fit is adequate, reject the null
+
+
+
+
+# model using gamma with inverse link function + on abs_diversity
+abs_diversity <- df$abs_diversity + (-min(df$abs_diversity) + 1)
+gamma.model2=fitdist(abs_diversity, "gamma")
+gamma.model2
+gamma.alpha2=gamma.model2$estimate[1]
+gamma.beta2 =gamma.model2$estimate[2]
+plot(gamma.model2)
+
+n=length(abs_diversity)
+samp.pct2 <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct2,gamma.alpha2, gamma.beta2), y=sort(abs_diversity), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+model3 = glm(abs_diversity+ (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(), data = df)
 summary(model3)
 par(mfrow = c(2,2))
 plot(model3)
+
+
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model3)
+# model fit is adequate, reject the null, but the fit is clearly worse than the relative_diversity
 ```
 
 ```{r gamma_abs_diversity, echo = TRUE}
-# model using gamma with log link function
-model4 = glm(abs_diversity + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "log"), data = df)
+# model using gamma with log link function + abs_diversity
+model4 = glm(abs_diversity+ (-min(abs_diversity) + 1) ~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "log"), data = df)
 summary(model4)
 par(mfrow = c(2,2))
 plot(model4)
-```
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model4)
+# model fit is adequate, reject the null, but the fit is clearly worse than the relative_diversity
 
-```{r gamma_diversity_change_rate, echo = TRUE}
-# model using gamma with log link function
-model5 = glm(diversity_change_rate + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "log"), data = df)
+
+# model using gamma with log link function + relative diversity
+model5 = glm(relative_diversity~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "inverse"), data = df)
 summary(model5)
 par(mfrow = c(2,2))
 plot(model5)
+
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model5)
+# model fit is adequate, reject the null, fit better than the abs_diversity
+```
+
+```{r gamma_diversity_change_rate, echo = TRUE}
+# model using gamma with log link function + diversity_change_rate
+model6 = glm(diversity_change_rate + (-min(diversity_change_rate) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = Gamma(link = "log"), data = df)
+summary(model6)
+par(mfrow = c(2,2))
+plot(model6)
+
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model6)
+
+# worse fitting ever
 ```
 
 The absolute diversity change fit the gamma distribution better as all the diagnosis plots state.
 Then we will use the AIC to find some significant variable:
 ```{r guassian_AIC_select, echo = TRUE}
 # model using gaussian
+# inverse link
+#relative_diversity
+model_selected2 <-step(model2, scope=~.)
+summary(model_selected2)
+
+par(mfrow = c(2,2))
+plot(model_selected2)
+
+# abs_diversity
+model_selected3 <-step(model3, scope=~.)
+summary(model_selected3)
+
+par(mfrow = c(2,2))
+plot(model_selected3)
+
+
+
+
+#log
+# abs_diversity
 model_selected4 <-step(model4, scope=~.)
 summary(model_selected4)
 
 par(mfrow = c(2,2))
 plot(model_selected4)
+
+#relative_diversity
+model_selected5 <-step(model5, scope=~.)
+summary(model_selected5)
+
+par(mfrow = c(2,2))
+plot(model_selected5)
+# model_select4 is clearly much better than model_select5
 ```
-According to the AIC, the guassian model with abs_diversity performs better, it has the lowest AIC value of 1617.2
+According to the AIC, the gamma model with abs_diversity performs better, it has the lowest AIC value of 1617.2
 
 
 ```{r poisson_abs_diversity, echo = TRUE}
 # model using poisson 
-model6 = glm(abs_diversity + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson, data = df)
-summary(model6)
-par(mfrow = c(2,2))
-plot(model6)
-```
+poisson.model1=fitdist(ceiling(abs_diversity), "pois")
+poisson.model1
+poisson.lambda=poisson.model1$estimate
+plot(poisson.model1)
 
-```{r poisson_relaitve_diversity, echo = TRUE}
-# model using poisson + log link
-model7 = glm(relative_diversity + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson(link = "log"), data = df)
+n=length(ceiling(abs_diversity))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(ceiling(abs_diversity)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+
+model7 = glm(abs_diversity + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson, data = df)
 summary(model7)
 par(mfrow = c(2,2))
 plot(model7)
-```
 
-```{r poisson_diversity_change_rate, echo = TRUE}
-# model using poisson + log link
-model8 = glm(diversity_change_rate + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson(link = "log"), data = df)
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model7)
+#adquate, reject null, both coefs are significant
+
+# model using poisson 
+poisson.model2=fitdist(ceiling(df$relative_diversity * 10^2), "pois")
+poisson.model2
+poisson.lambda2=poisson.model2$estimate
+plot(poisson.model2)
+
+n=length(ceiling(df$relative_diversity * 10^2))
+samp.pct2 <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct2, poisson.lambda2), y=sort(ceiling(df$relative_diversity * 10^2)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+
+model8 = glm(relative_diversity  ~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson, data = df)
 summary(model8)
 par(mfrow = c(2,2))
 plot(model8)
+
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model8)
+#adequate, but poor fit than the previous one, reject null, both coefs are significant
+```
+
+```{r poisson_relaitve_diversity, echo = TRUE}
+# model using poisson + log link + relative_diversity
+model9 = glm(relative_diversity ~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson(link = "log"), data = df)
+summary(model9)
+par(mfrow = c(2,2))
+plot(model9)
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model9)
+
+# model using poisson + log link + abs_diversity
+model10 = glm(abs_diversity + (-min(abs_diversity) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson(link = "log"), data = df)
+summary(model10)
+par(mfrow = c(2,2))
+plot(model10)
+#goodness of fit
+qchisq(0.95,10)
+library(msme)
+P__disp(model10)
+#both are adequate, but the abs_diversity is better fit than relative diversity
+```
+
+```{r poisson_diversity_change_rate, echo = TRUE}
+# model using poisson + log link + change rate
+model11 = glm(diversity_change_rate + (-min(diversity_change_rate) + 1)~ Treatment + as.factor(Plot_number) + as.factor(Quadrat_number), family = poisson(link = "log"), data = df)
+summary(model11)
+par(mfrow = c(2,2))
+plot(model11)
+#goodness of fit
+qchisq(0.95,10)
+P__disp(model11)
 ```
 abs_diversity always fits the model better, so choose the abs_diversity as the variable to fit models
 
 
-##Richness
+##Richness (guassian + abs_richness)
 The richness shows the same trend as the diversity, both gap and radial are statistically significant, but the gap has positive effect on the absolute richness, while the radial has negative effect on the richness. When the radial treatment coef is negative, the plots from radial treatment shows a positive and statistically significant coefficient. The abs_richness fit the model better than both relative richness and richness change rate. But the richness change rate has lowest AIC.
 ```{r guassian_abs_richness, echo = TRUE}
 # model using gaussian
+guas.modelr=fitdist(df$abs_richness, "norm")
+guas.modelr
+guas.meanr=guas.modelr$estimate[1]
+guas.sdr =guas.modelr$estimate[2]
+plot(guas.modelr)
+
+n=length(df$abs_richness)
+samp.pctr <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pctr,guas.meanr, guas.sdr), y=sort(df$abs_richness), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+
 modelr = glm(abs_richness ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = gaussian, data = df)
 summary(modelr)
 par(mfrow = c(2,2))
 
 plot(modelr)
-
+pure.guass.modelr <- glm(abs_richness ~ 1 , family = gaussian, data = df)
+anova( pure.guass.modelr, modelr, test = "F")
+# the guassian model shows perfect fitting, with coefficient statistically significant
 ```
 
 ```{r guassian_relative_richness, echo = TRUE}
@@ -148,7 +399,9 @@ summary(modelr1)
 par(mfrow = c(2,2))
 
 plot(modelr1)
-
+relative.guass.modelr <- glm(relative_richness ~ 1 , family = gaussian, data = df)
+anova(relative.guass.modelr, modelr1, test = "F")
+#worse then before, but still better than the abs_richness varaible
 ```
 
 ```{r guassian_richness_change_rate, echo = TRUE}
@@ -158,6 +411,9 @@ summary(modelr2)
 par(mfrow = c(2,2))
 
 plot(modelr2)
+rate.guass.modelr <- glm(richness_change_rate ~ 1 , family = gaussian, data = df)
+anova(rate.guass.modelr, modelr2, test = "F")
+#rate change is worse
 ```
 ```{r guassian_AIC_select_richness, echo = TRUE}
 # model using gaussian
@@ -166,27 +422,60 @@ summary(modelr_selected2)
 
 par(mfrow = c(2,2))
 plot(modelr_selected2)
+# only plot number matters, the treatment is not statistically significant
 ```
 
 
 ```{r gamma_abs_richness+inverse_link, echo = TRUE}
-# model using gamma+ inverse link
+# model using gamma+ inverse link + abs_richness
+abs_richness <- df$abs_richness + (-min(df$abs_richness) + 1) 
+gamma.modelr3=fitdist(abs_richness , "gamma")
+gamma.modelr3
+gamma.alphar3=gamma.modelr3$estimate[1]
+gamma.betar3 =gamma.modelr3$estimate[2]
+plot(gamma.modelr3)
+
+n=length(abs_richness)
+samp.pct3 <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct3,gamma.alphar3, gamma.betar3), y=sort(abs_richness), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
 modelr3 = glm(abs_richness + (-min(abs_richness) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = Gamma(link = "inverse"), data = df)
 summary(modelr3)
 par(mfrow = c(2,2))
 
 plot(modelr3)
-
+# goodness of fit
+qchisq(0.95,10)
+P__disp(modelr3)
+# adequate, better fit than abs_richness, but worse than guassian
 ```
 
 ```{r gamma_relative_richness+inverse_link, echo = TRUE}
-# model using gamma + inverse link
+# model using gamma + inverse link  relative_richness
+gamma.modelr4=fitdist(df$relative_richness , "gamma")
+gamma.modelr4
+gamma.alphar4=gamma.modelr4$estimate[1]
+gamma.betar4 =gamma.modelr4$estimate[2]
+plot(gamma.modelr4)
+
+n=length(df$relative_richness)
+samp.pct4 <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct4,gamma.alphar4, gamma.betar4), y=sort(df$relative_richness), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
 modelr4 = glm(relative_richness + (-min(abs_richness) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = Gamma(link = "inverse"), data = df)
 summary(modelr4)
 par(mfrow = c(2,2))
 
 plot(modelr4)
+
+# goodness of fit
+qchisq(0.95,10)
+P__disp(modelr4)
+# Not adequate, worse fit than abs_richness, but worse than guassian
 ```
+model select with AIC
 ```{r poisson_AIC_select_richness, echo = TRUE}
 # model using gamma + inverse link + abs_richness
 modelr_selected3 <-step(modelr3, scope=~.)
@@ -197,34 +486,76 @@ plot(modelr_selected3)
 ```
 
 ```{r poisson_abs_richness+inverse_link, echo = TRUE}
-# model using gamma+ inverse link
+# model using piosson + inverse
+poisson.model1=fitdist(ceiling(abs_richness), "pois")
+poisson.model1
+poisson.lambda=poisson.model1$estimate
+plot(poisson.model1)
+
+n=length(ceiling(abs_richness))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(ceiling(abs_richness)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+# model using poisson
 modelr5 = glm(abs_richness + (-min(abs_richness) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = poisson, data = df)
 summary(modelr5)
 par(mfrow = c(2,2))
 
 plot(modelr5)
 
+qchisq(0.95,10)
+P__disp(modelr5)
+# adequate, could be choosed
 ```
 
-```{r quasi-poisson_abs_richness+inverse_link, echo = TRUE}
-# model using gamma+ inverse link
-modelr6 = glm(abs_richness + (-min(abs_richness) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = quasipoisson, data = df)
-summary(modelr6)
+```{r negbinom_abs_richness, echo = TRUE}
+# model using negbinom + inverse
+nb.modelr1=fitdist(ceiling(abs_richness), "nbinom")
+nb.modelr1
+nb.sizer1=nb.modelr1$estimate[1]
+nb.mur1 = nb.modelr1$estimate[2]
+nb.probr1=nb.sizer1/(nb.sizer1+nb.mur1) 
+plot(nb.modelr1)
+
+n=length(ceiling(abs_richness))
+samp.pctr1 <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pctr1,nb.sizer1, nb.probr1), y=sort(ceiling(abs_richness)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+
+modelra6 = glm.nb(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), data = df)
+summary(modelra6)
 par(mfrow = c(2,2))
 
 plot(modelr6)
-
+qchisq(0.95,10)
+P__disp(modelr6)
 ```
-## relative abundances
+
+## relative abundances (guassian + abs)
 The relative abundances of species has the same trend as diversity and richness
 ```{r guassian_abs_relative_abundance, echo = TRUE}
-# model using gaussian
+# model using gaussian + abs
+guas.modelra=fitdist(df$abs_relative_abundance, "norm")
+guas.modelra
+guas.meanra=guas.modelra$estimate[1]
+guas.sdra =guas.modelra$estimate[2]
+plot(guas.modelra)
+
+n=length(df$abs_relative_abundance)
+samp.pctra <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pctra,guas.meanra, guas.sdra), y=sort(df$abs_relative_abundance), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
 modelra = glm(abs_relative_abundance ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = gaussian, data = df)
 summary(modelra)
 par(mfrow = c(2,2))
 
 plot(modelra)
-
+pure.guass.modelra <- glm(abs_relative_abundance ~ 1 , family = gaussian, data = df)
+anova(pure.guass.modelra, modelra, test = "F")
 ```
 
 ```{r guassian_relative_abundance, echo = TRUE}
@@ -234,7 +565,9 @@ summary(modelra1)
 par(mfrow = c(2,2))
 
 plot(modelra1)
-
+relative.guass.modelra <- glm(relative_abundance ~ 1 , family = gaussian, data = df)
+anova(relative.guass.modelra, modelra1, test = "F")
+# the fit is worse than the abs relative abundance
 ```
 
 ```{r guassian_relative_abundance_change_rate, echo = TRUE}
@@ -244,13 +577,15 @@ summary(modelra2)
 par(mfrow = c(2,2))
 
 plot(modelra2)
-
+rate.guass.modelra <- glm(relative_abundance_change_rate ~ 1 , family = gaussian, data = df)
+anova(rate.guass.modelra, modelra2, test = "F")
+# the fit is worse than the abs relative abundance 
 ```
 
 ```{r guassian_AIC_select_relative_abundance, echo = TRUE}
 # model using gaussian
 modelra_selected2 <-step(modelra, scope=~.)
-summary(modelr_selected2)
+summary(modelra_selected2)
 
 par(mfrow = c(2,2))
 plot(modelra_selected2)
@@ -258,15 +593,31 @@ plot(modelra_selected2)
 
 ```{r gamma_abs_relative_abundance+inverse, echo = TRUE}
 # model using gamma + inverse
+abs_relative_abundance <- df$abs_relative_abundance + (-min(df$abs_relative_abundance) + 1)
+gamma.modelra3=fitdist(abs_relative_abundance, "gamma")
+gamma.modelra3
+gamma.alphara3=gamma.modelra3$estimate[1]
+gamma.betara3 =gamma.modelra3$estimate[2]
+plot(gamma.modelra3)
+
+n=length(abs_relative_abundance)
+samp.pctra3 <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pctra3,gamma.alphara3, gamma.betara3), y=sort(abs_relative_abundance), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
 modelra3 = glm(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = Gamma(link = "inverse"), data = df)
 summary(modelra3)
 par(mfrow = c(2,2))
 
 plot(modelra3)
 
+qchisq(0.95,10)
+library(msme)
+P__disp(modelra3)
+# adequate, but the model fit is worse than the guassian model
 ```
 
-```{r ggamma_abs_relative_abundance+log, echo = TRUE}
+```{r gamma_abs_relative_abundance+log, echo = TRUE}
 # model using gamma + log link
 modelra4 = glm(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = Gamma(link = "log"), data = df)
 summary(modelra4)
@@ -276,19 +627,51 @@ plot(modelra4)
 ```
 
 ```{r poisson_abs_relative_abundance, echo = TRUE}
+# model using quasipiosson + inverse
+poisson.model1=fitdist(ceiling(abs_relative_abundance), "pois")
+poisson.model1
+poisson.lambda=poisson.model1$estimate
+plot(poisson.model1)
+
+n=length(abs_relative_abundance)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(ceiling(abs_relative_abundance)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
 # model using gamma + inverse
 modelra5 = glm(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = poisson, data = df)
 summary(modelra5)
 par(mfrow = c(2,2))
 
 plot(modelra5)
+
+plot(modelra5)
+qchisq(0.95,10)
+P__disp(modelra5)
 ```
 
-```{r quasi-poisson_abs_relative_abundance, echo = TRUE}
-# model using gamma + inverse
-modelra6 = glm(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = quasipoisson, data = df)
+```{r negbinom_abs_relative_abundance, echo = TRUE}
+# model using negbinom + inverse
+nb.model1=fitdist(ceiling(abs_relative_abundance), "nbinom")
+nb.model1
+nb.size=nb.model1$estimate[1]
+nb.mu = nb.model1$estimate[2]
+nb.prob=nb.size/(nb.size+nb.mu) 
+plot(nb.model1)
+
+n=length(ceiling(abs_relative_abundance))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(ceiling(abs_relative_abundance)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+
+modelra6 = glm(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), family = poisson, data = df)
 summary(modelra6)
 par(mfrow = c(2,2))
 
 plot(modelra6)
+qchisq(0.95,10)
+P__disp(modelra6)
 ```
+guassian has better performance than others
