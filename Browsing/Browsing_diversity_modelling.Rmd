@@ -61,7 +61,7 @@ anova(div_03_lm_b,div_03_lm_a)
 ```
 
 ```{r}
-# Gamma and Inverse Gaussian GLM
+# Gamma GLM
 #manipulate data by adding a constant to every y, so that they are all positive
 d=min(div_fenced_03$Diversity_change)-0.0001 #-0.0001 so that y is not 0 
 div_fenced_03$Diversity_change_pos=div_fenced_03$Diversity_change + abs(d)

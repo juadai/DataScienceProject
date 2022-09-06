@@ -120,6 +120,7 @@ qchisq(0.95,61)
 
 # try incorporate random effects
 ```{r}
+library(lme4)
 rich_03_nbmm_b=glmer.nb(Richness_change_pos~Treatment+(1|Plot_number/Quadrat_number), data=rich_fenced_03)
 summary(rich_03_nbmm_b)
 
