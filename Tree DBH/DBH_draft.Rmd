@@ -1,0 +1,580 @@
+---
+title: "DBH draft models"
+output:
+  word_document: default
+  html_document: default
+---
+
+This is a draft for DBH modelling. There are many models in this file, many of them are useless.
+
+# data preparation
+```{r}
+setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
+# load data
+data = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
+```
+```{r}
+summary(data)
+sapply(data, typeof)
+sapply(data[c(2,3,4,5,8,9,10,11,12,13,14,15)], unique)
+```
+
+only extract DBH-related data for DBH modelling
+```{r}
+DBHdata = data[1:9]
+```
+
+check NAs and blank
+```{r}
+# blank "Large", assume "No" where it's blank
+DBHdata[DBHdata$Large == "", "Tree.Number"]
+DBHdata[DBHdata$Large == "", "Large"] = "No"
+```
+```{r}
+# blank "Alive.at.year.6"
+DBHdata[DBHdata$Alive.at.year.6 == "", 1:7]
+
+# 20 rows with blank "Alive.at.year.6" have valid values for "DBH.year.6", assume they have "Yes" for "Alive.at.year.6"
+DBHdata[DBHdata$Alive.at.year.6 == "" & !(is.na(DBHdata$DBH.year.6)), "Alive.at.year.6"] = "Yes"
+
+# the rest 8 rows with blank "Alive.at.year.6" have NA for "DBH.year.6", not sure whether the trees are not alive, or just missing records in year6, so no modification.
+```
+```{r}
+# NA in "DBH.year.6", no modification
+DBHdata[is.na(DBHdata$DBH.year.6), 1:7]
+
+# 9 NAs for "DBH.year.6", 8 rows are the rows where "Alive.at.year.6" is blank, and one exception.
+```
+#------------------------------------------------------------------------------------------
+Referring to lower priority hypotheses: 
+- The rate of natural mortality will be greater in control plots as compared to T1 and T2.
+NOT satisfy: all blank Alive.at.year.6 are in T2:Radial.
+#-------------------------------------------------------------------------------------------
+```{r}
+# NA in "DBH.year.0", no modification
+DBHdata[is.na(DBHdata$DBH.year.0), 1:7] # 2 NAs for "DBH.year.0"
+```
+```{r}
+# NA in "Class.year.0" and NA in "Class.year.6", no modification
+DBHdata[is.na(DBHdata$Class.year.0) | is.na(DBHdata$Class.year.6), ]
+
+# All NA appears where there's NA for DBH (2 in year0, 9 in year6), but 2 exceptions where there's valid values for DBH:
+# both in Plot5(T2: Radial), Tree.Number 148, 149, they have extremely large DBH.
+```
+
+add Tree.growth
+```{r}
+DBHdata$Tree.growth = DBHdata$DBH.year.6 - DBHdata$DBH.year.0
+```
+
+remove Tree.growth = NA rows and Tree.growth<=0 rows
+```{r}
+DBHdata[is.na(DBHdata$Tree.growth) | DBHdata$Tree.growth <= 0, ] # rows to be removed
+DBHdata = DBHdata[!(is.na(DBHdata$Tree.growth)) & DBHdata$Tree.growth > 0, ]
+```
+
+make Treatment and Large factor
+```{r}
+DBHdata$Treatment = factor(DBHdata$Treatment)
+DBHdata$Large = factor(DBHdata$Large)
+```
+
+
+
+# start with gaussian glm for Tree.growth
+```{r}
+# best model derived from Tree.growth~DBH.year.0*Large*Treatment
+glm1.0 = glm(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHdata)
+summary(glm1.0)
+
+tss = sum((DBHdata$Tree.growth-mean(DBHdata$Tree.growth))^2) #TSS
+rss = sum((DBHdata$Tree.growth-fitted(glm1.0))^2) #RSS
+(tss-rss)/tss #R^2
+
+par(mfrow=c(2,2))
+plot(glm1.0)
+#plot(DBHdata$Tree.growth, fitted(glm1.0), type = "p", col = DBHdata$Treatment)
+#abline(0, 1)
+#plot(DBHdata$Tree.growth, fitted(glm1.0), type = "p", col = DBHdata$Large)
+#abline(0, 1)
+```
+
+
+
+# gaussian glm for outliers removed Tree.growth
+```{r}
+par(mfrow=c(1,2))
+plot(DBHdata$Tree.growth~DBHdata$DBH.year.0, type = "p", col = DBHdata$Treatment)
+plot(DBHdata$Tree.growth~DBHdata$DBH.year.0, type = "p", col = DBHdata$Large)
+
+DBHdata[DBHdata$Tree.growth > 10 | DBHdata$DBH.year.0 > 80, ]
+DBHremove = DBHdata[DBHdata$Tree.growth < 10 & DBHdata$DBH.year.0 < 80, ] # remove 8 rows
+```
+```{r}
+# same formula as glm1.0
+glm2.0 = glm(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHremove)
+summary(glm2.0)
+
+tss = sum((DBHremove$Tree.growth-mean(DBHremove$Tree.growth))^2) #TSS
+rss = sum((DBHremove$Tree.growth-fitted(glm2.0))^2) #RSS
+(tss-rss)/tss #R^2
+
+par(mfrow=c(2,2))
+plot(glm2.0)
+par(mfrow=c(1,2))
+plot(DBHremove$Tree.growth, fitted(glm2.0), type = "p", col = DBHremove$Treatment, main = "Fitted vs Actual (color Treatment)")
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0, 1)
+plot(DBHremove$Tree.growth, fitted(glm2.0), type = "p", col = DBHremove$Large, main = "Fitted vs Actual (color Large)")
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0, 1)
+```
+
+
+
+# gaussian glm for log(Tree.growth)
+gaussian glm for log(DBHdata)
+```{r}
+DBHdata$Tree.growth.log = log(DBHdata$Tree.growth)
+
+# same formula as glm1.0
+glm1.1 = glm(Tree.growth.log~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHdata)
+summary(glm1.1)
+
+tss = sum((DBHdata$Tree.growth.log-mean(DBHdata$Tree.growth.log))^2) #TSS
+rss = sum((DBHdata$Tree.growth.log-fitted(glm1.1))^2) #RSS
+(tss-rss)/tss #R^2
+
+par(mfrow=c(2,2))
+plot(glm1.1)
+par(mfrow=c(1,2))
+plot(DBHdata$Tree.growth.log, fitted(glm1.1), type = "p", col = DBHdata$Treatment, main = "Fitted vs Actual (color Treatment)")
+legend("topleft", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0, 1)
+plot(DBHdata$Tree.growth.log, fitted(glm1.1), type = "p", col = DBHdata$Large, main = "Fitted vs Actual (color Large)")
+legend("topleft", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0, 1)
+```
+
+
+
+glm gaussian for log(DBHremove)
+```{r}
+DBHremove$Tree.growth.log = log(DBHremove$Tree.growth)
+
+# same formula as glm1.0
+glm2.1 = glm(Tree.growth.log~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHremove)
+summary(glm2.1)
+
+tss = sum((DBHremove$Tree.growth.log-mean(DBHremove$Tree.growth.log))^2) #TSS
+rss = sum((DBHremove$Tree.growth.log-fitted(glm2.1))^2) #RSS
+(tss-rss)/tss #R^2
+
+par(mfrow=c(2,2))
+plot(glm2.1)
+par(mfrow=c(1,2))
+plot(DBHremove$Tree.growth.log, fitted(glm2.1), type = "p", col = DBHremove$Treatment, main = "Fitted vs Actual (color Treatment)")
+legend("topleft", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0, 1)
+plot(DBHremove$Tree.growth.log, fitted(glm2.1), type = "p", col = DBHremove$Large, main = "Fitted vs Actual (color Large)")
+legend("topleft", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0, 1)
+```
+
+
+
+# gaussian glm for boxcox(Tree.growth)
+glm gaussian for boxcox(DBHdata)
+```{r}
+library(MASS)
+b = boxcox(DBHdata$Tree.growth~1, lambda = seq(0, 0.3, 0.05))
+lambda = b$x[which.max(b$y)]
+DBHdata$Tree.growth.boxcox = (DBHdata$Tree.growth^lambda-1)/lambda
+```
+```{r}
+glm1.2 = glm(Tree.growth.boxcox~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHdata)
+summary(glm1.2)
+
+tss = sum((DBHdata$Tree.growth.boxcox-mean(DBHdata$Tree.growth.boxcox))^2) #TSS
+rss = sum((DBHdata$Tree.growth.boxcox-fitted(glm1.2))^2) #RSS
+(tss-rss)/tss #R^2
+
+par(mfrow=c(2,2))
+plot(glm1.2)
+par(mfrow=c(1,2))
+plot(DBHdata$Tree.growth.boxcox, fitted(glm1.2), type = "p", col = DBHdata$Treatment, main = "Fitted vs Actual (color Treatment)")
+legend("topleft", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0, 1)
+plot(DBHdata$Tree.growth.boxcox, fitted(glm1.2), type = "p", col = DBHdata$Large, main = "Fitted vs Actual (color Large)")
+legend("topleft", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0, 1)
+```
+
+
+
+glm gaussian for boxcox(DBHremove)
+```{r}
+#library(MASS)
+b = boxcox(DBHremove$Tree.growth~1, lambda = seq(0, 0.5, 0.05))
+lambda = b$x[which.max(b$y)]
+DBHremove$Tree.growth.boxcox = (DBHremove$Tree.growth^lambda-1)/lambda
+```
+```{r}
+glm2.2 = glm(Tree.growth.boxcox~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHremove)
+summary(glm2.2)
+
+tss = sum((DBHremove$Tree.growth.boxcox-mean(DBHremove$Tree.growth.boxcox))^2) #TSS
+rss = sum((DBHremove$Tree.growth.boxcox-fitted(glm2.2))^2) #RSS
+(tss-rss)/tss #R^2
+
+par(mfrow=c(2,2))
+plot(glm2.2)
+par(mfrow=c(1,2))
+plot(DBHremove$Tree.growth.boxcox, fitted(glm2.2), type = "p", col = DBHremove$Treatment, main = "Fitted vs Actual (color Treatment)")
+legend("topleft", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0, 1)
+plot(DBHremove$Tree.growth.boxcox, fitted(glm2.2), type = "p", col = DBHremove$Large, main = "Fitted vs Actual (color Large)")
+legend("topleft", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0, 1)
+```
+
+
+
+# seperatly model not-large and large
+```{r}
+large = DBHdata[DBHdata$Large == "Yes", 1:11]
+nlarge = DBHdata[DBHdata$Large == "No", 1:11]
+largerm = DBHremove[DBHremove$Large == "Yes", 1:11]
+nlargerm = DBHremove[DBHremove$Large == "No", 1:11]
+```
+```{r}
+plot(large$Tree.growth~large$DBH.year.0, type = "p", col = large$Treatment)
+plot(nlarge$Tree.growth~nlarge$DBH.year.0, type = "p", col = nlarge$Treatment)
+par(mfrow=c(1,2))
+plot(largerm$Tree.growth~largerm$DBH.year.0, type = "p", col = largerm$Treatment)
+plot(nlargerm$Tree.growth~nlargerm$DBH.year.0, type = "p", col = nlargerm$Treatment)
+```
+
+
+
+glm model using nlargerm
+```{r}
+# best model derived from Tree.growth~DBH.year.0*Treatment
+glm3.0 = glm(Tree.growth~DBH.year.0+Treatment, data = nlargerm)
+summary(glm3.0)
+rss = sum((nlargerm$Tree.growth-glm3.0$fitted.values)^2) #TSS
+tss = sum((nlargerm$Tree.growth-mean(nlargerm$Tree.growth))^2) #RSS
+(tss-rss)/tss# R^2
+plot(glm3.0)
+plot(nlargerm$Tree.growth, glm3.0$fitted.values, type = "p", col = nlargerm$Treatment)
+abline(0, 1)
+```
+
+
+
+glm model using log(nlargerm)
+```{r}
+# best model derived from Tree.growth~DBH.year.0*Treatment
+glm3.1 = glm(Tree.growth.log~DBH.year.0+Treatment, data = nlargerm)
+summary(glm3.1)
+rss = sum((nlargerm$Tree.growth.log-glm3.1$fitted.values)^2) #TSS
+tss = sum((nlargerm$Tree.growth.log-mean(nlargerm$Tree.growth.log))^2) #RSS
+(tss-rss)/tss# R^2
+plot(glm3.1)
+plot(nlargerm$Tree.growth.log, glm3.1$fitted.values, type = "p", col = nlargerm$Treatment)
+abline(0, 1)
+```
+
+
+
+mixed effect model using nlargerm
+```{r}
+library(lme4)
+mixed3.0 = lmer(Tree.growth~DBH.year.0+Treatment+(DBH.year.0+Treatment|Plot), data = nlargerm)
+summary(mixed3.0)
+VarCorr(mixed3.0)
+y.hat3.0 <- fitted(mixed3.0) # Fitted values
+int.hat3.0 <- ranef(mixed3.0)[[1]][[1]] # Predicted intercepts
+res.hat3.0 <- residuals(mixed3.0) # Estimated residuals
+tss = sum((nlargerm$Tree.growth-mean(nlargerm$Tree.growth))^2) #TSS
+rss = sum((nlargerm$Tree.growth-y.hat3.0)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed3.0)
+```
+```{r}
+qqnorm(int.hat3.0, main="Random Intercepts"); qqline(int.hat3.0)
+qqnorm(res.hat3.0, main="Residuals"); qqline(res.hat3.0)
+plot(y.hat3.0, res.hat3.0, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(nlargerm$Tree.growth, y.hat3.0, col = nlargerm$Treatment)
+abline(0, 1)
+```
+
+
+
+glm model using largerm
+```{r}
+# best model derived from Tree.growth~DBH.year.0*Treatment
+glm4.0 = glm(Tree.growth~DBH.year.0+Treatment, data = largerm)
+summary(glm4.0)
+rss = sum((largerm$Tree.growth-glm4.0$fitted.values)^2) #TSS
+tss = sum((largerm$Tree.growth-mean(largerm$Tree.growth))^2) #RSS
+(tss-rss)/tss# R^2
+plot(glm4.0)
+plot(largerm$Tree.growth, glm4.0$fitted.values, type = "p", col = largerm$Treatment)
+abline(0, 1)
+```
+
+
+
+glm model using log(largerm)
+```{r}
+# best model derived from Tree.growth~DBH.year.0*Treatment
+glm4.1 = glm(Tree.growth.log~DBH.year.0+Treatment, data = largerm)
+summary(glm4.1)
+rss = sum((largerm$Tree.growth.log-glm4.1$fitted.values)^2) #TSS
+tss = sum((largerm$Tree.growth.log-mean(largerm$Tree.growth.log))^2) #RSS
+(tss-rss)/tss# R^2
+plot(glm4.1)
+plot(largerm$Tree.growth.log, glm4.1$fitted.values, type = "p", col = largerm$Treatment)
+abline(0, 1)
+```
+
+
+
+mixed effect model using largerm
+```{r}
+#library(lme4)
+mixed4.0 = lmer(Tree.growth~DBH.year.0+Treatment+(DBH.year.0+Treatment|Plot), data = largerm)
+summary(mixed4.0)
+VarCorr(mixed4.0)
+y.hat4.0 <- fitted(mixed4.0) # Fitted values
+int.hat4.0 <- ranef(mixed4.0)[[1]][[1]] # Predicted intercepts
+res.hat4.0 <- residuals(mixed4.0) # Estimated residuals
+tss = sum((largerm$Tree.growth-mean(largerm$Tree.growth))^2) #TSS
+rss = sum((largerm$Tree.growth-y.hat4.0)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed4.0)
+```
+
+
+
+```{r}
+par(mfrow=c(2,2))
+qqnorm(int.hat4.0, main="Random Intercepts"); qqline(int.hat4.0)
+qqnorm(res.hat4.0, main="Residuals"); qqline(res.hat4.0)
+plot(y.hat4.0, res.hat4.0, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(largerm$Tree.growth, y.hat4.0, col = largerm$Treatment)
+abline(0, 1)
+```
+
+
+
+# mixed-effect model, condition on Plot
+mixed effect model for DBHdata$Tree.growth
+```{r}
+#library(lme4)
+mixed1.0 = lmer(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHdata)
+summary(mixed1.0)
+VarCorr(mixed1.0)
+y.hat1.0 <- fitted(mixed1.0) # Fitted values
+int.hat1.0 <- ranef(mixed1.0)[[1]][[1]] # Predicted intercepts
+res.hat1.0 <- residuals(mixed1.0) # Estimated residuals
+tss = sum((DBHdata$Tree.growth-mean(DBHdata$Tree.growth))^2) #TSS
+rss = sum((DBHdata$Tree.growth-y.hat1.0)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed1.0)
+```
+```{r}
+qqnorm(int.hat1.0, main="Random Intercepts"); qqline(int.hat1.0)
+qqnorm(res.hat1.0, main="Residuals"); qqline(res.hat1.0)
+plot(y.hat1.0, res.hat1.0, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(DBHdata$Tree.growth, y.hat1.0, col = DBHdata$Treatment)
+abline(0, 1)
+plot(DBHdata$Tree.growth, y.hat1.0, col = DBHdata$Large)
+abline(0, 1)
+```
+
+
+
+mixed effect model for log(DBHdata$Tree.growth)
+```{r}
+#library(lme4)
+mixed1.1 = lmer(Tree.growth.log~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHdata)
+summary(mixed1.1)
+VarCorr(mixed1.1)
+y.hat1.1 <- fitted(mixed1.1) # Fitted values
+int.hat1.1 <- ranef(mixed1.1)[[1]][[1]] # Predicted intercepts
+res.hat1.1 <- residuals(mixed1.1) # Estimated residuals
+tss = sum((DBHdata$Tree.growth.log-mean(DBHdata$Tree.growth.log))^2) #TSS
+rss = sum((DBHdata$Tree.growth.log-y.hat1.1)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed1.1)
+```
+```{r}
+qqnorm(int.hat1.1, main="Random Intercepts"); qqline(int.hat1.1)
+qqnorm(res.hat1.1, main="Residuals"); qqline(res.hat1.1)
+plot(y.hat1.1, res.hat1.1, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(DBHdata$Tree.growth.log, y.hat1.1, col = DBHdata$Treatment)
+abline(0, 1)
+plot(DBHdata$Tree.growth.log, y.hat1.1, col = DBHdata$Large)
+abline(0, 1)
+```
+
+
+
+mixed effect model for log(DBHdata$Tree.growth)
+```{r}
+#library(lme4)
+mixed1.2 = lmer(Tree.growth.boxcox~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHdata)
+summary(mixed1.2)
+VarCorr(mixed1.2)
+y.hat1.2 <- fitted(mixed1.2) # Fitted values
+int.hat1.2 <- ranef(mixed1.2)[[1]][[1]] # Predicted intercepts
+res.hat1.2 <- residuals(mixed1.2) # Estimated residuals
+tss = sum((DBHdata$Tree.growth.boxcox-mean(DBHdata$Tree.growth.boxcox))^2) #TSS
+rss = sum((DBHdata$Tree.growth.boxcox-y.hat1.1)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed1.2)
+```
+```{r}
+qqnorm(int.hat1.2, main="Random Intercepts"); qqline(int.hat1.2)
+qqnorm(res.hat1.2, main="Residuals"); qqline(res.hat1.2)
+plot(y.hat1.2, res.hat1.2, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(DBHdata$Tree.growth.boxcox, y.hat1.2, col = DBHdata$Treatment)
+abline(0, 1)
+plot(DBHdata$Tree.growth.boxcox, y.hat1.2, col = DBHdata$Large)
+abline(0, 1)
+```
+
+
+
+mixed effect model for DBHremove$Tree.growth
+```{r}
+#library(lme4)
+mixed2.0 = lmer(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(-1+DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHremove)
+summary(mixed2.0)
+VarCorr(mixed2.0)
+y.hat2.0 <- fitted(mixed2.0) # Fitted values
+#int.hat2.0 <- ranef(mixed2.0)[[1]][[1]] # Predicted intercepts
+res.hat2.0 <- residuals(mixed2.0) # Estimated residuals
+tss = sum((DBHremove$Tree.growth-mean(DBHremove$Tree.growth))^2) #TSS
+rss = sum((DBHremove$Tree.growth-y.hat2.0)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed2.0)
+```
+```{r}
+par(mfrow=c(2,2))
+#qqnorm(int.hat2.0, main="Random Intercepts"); qqline(int.hat2.0)
+qqnorm(res.hat2.0, main="Residuals"); qqline(res.hat2.0)
+plot(y.hat2.0, res.hat2.0, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(DBHremove$Tree.growth, y.hat2.0, col = DBHremove$Treatment)
+abline(0, 1)
+plot(DBHremove$Tree.growth, y.hat2.0, col = DBHremove$Large)
+abline(0, 1)
+```
+
+
+
+mixed effect model for log(DBHremove$Tree.growth)
+```{r}
+#library(lme4)
+mixed2.1 = lmer(Tree.growth.log~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHremove)
+summary(mixed2.1)
+VarCorr(mixed2.1)
+y.hat2.1 <- fitted(mixed2.1) # Fitted values
+int.hat2.1 <- ranef(mixed2.1)[[1]][[1]] # Predicted intercepts
+res.hat2.1 <- residuals(mixed2.1) # Estimated residuals
+tss = sum((DBHremove$Tree.growth.log-mean(DBHremove$Tree.growth.log))^2) #TSS
+rss = sum((DBHremove$Tree.growth.log-y.hat2.1)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed2.1)
+```
+```{r}
+qqnorm(int.hat2.1, main="Random Intercepts"); qqline(int.hat2.1)
+qqnorm(res.hat2.1, main="Residuals"); qqline(res.hat2.1)
+plot(y.hat2.1, res.hat2.1, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(DBHremove$Tree.growth.log, y.hat2.1, col = DBHremove$Treatment)
+abline(0, 1)
+plot(DBHremove$Tree.growth.log, y.hat2.1, col = DBHremove$Large)
+abline(0, 1)
+```
+
+
+
+mixed effect model for boxcox(DBHremove$Tree.growth)
+```{r}
+#library(lme4)
+mixed2.2 = lmer(Tree.growth.boxcox~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHremove)
+summary(mixed2.2)
+VarCorr(mixed2.2)
+y.hat2.2 <- fitted(mixed2.2) # Fitted values
+int.hat2.2 <- ranef(mixed2.2)[[1]][[1]] # Predicted intercepts
+res.hat2.2 <- residuals(mixed2.2) # Estimated residuals
+tss = sum((DBHremove$Tree.growth.boxcox-mean(DBHremove$Tree.growth.boxcox))^2) #TSS
+rss = sum((DBHremove$Tree.growth.boxcox-y.hat2.2)^2) #RSS
+(tss-rss)/tss #R^2
+anova(mixed2.2)
+```
+```{r}
+qqnorm(int.hat2.2, main="Random Intercepts"); qqline(int.hat2.2)
+qqnorm(res.hat2.2, main="Residuals"); qqline(res.hat2.2)
+plot(y.hat2.2, res.hat2.2, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(DBHremove$Tree.growth.boxcox, y.hat2.2, col = DBHremove$Treatment)
+abline(0, 1)
+plot(DBHremove$Tree.growth.boxcox, y.hat2.2, col = DBHremove$Large)
+abline(0, 1)
+```
+
+
+
+# tests
+```{r}
+shapiro.test(DBHdata$Tree.growth) # not normal
+library(car)
+leveneTest(Tree.growth~Large, data = DBHdata) # variance are different between large and not-large groups
+leveneTest(Tree.growth~Treatment, data = DBHdata) # variance are different across each Treatment group
+```
+```{r}
+shapiro.test(DBHdata$Tree.growth.log) # not normal
+#library(car)
+leveneTest(Tree.growth.log~Large, data = DBHdata) # variance are different between large and not-large groups
+leveneTest(Tree.growth.log~Treatment, data = DBHdata) # variance are consistent across each Treatment group
+```
+```{r}
+shapiro.test(DBHdata$Tree.growth.boxcox) # close to normal
+#library(car)
+leveneTest(Tree.growth.boxcox~Large, data = DBHdata) # variance are different between large and not-large groups
+leveneTest(Tree.growth.boxcox~Treatment, data = DBHdata) # variance are consistent across each Treatment group
+```
+```{r}
+shapiro.test(DBHremove$Tree.growth) # not normal
+#library(car)
+leveneTest(Tree.growth~Large, data = DBHremove) # variance are different between large and not-large groups
+leveneTest(Tree.growth~Treatment, data = DBHremove) # variance are different across each Treatment group
+```
+```{r}
+shapiro.test(DBHremove$Tree.growth.log) # not normal
+#library(car)
+leveneTest(Tree.growth.log~Large, data = DBHremove) # variance can be considered as consistent between large and not-large groups
+leveneTest(Tree.growth.log~Treatment, data = DBHremove) # variance are consistent across each Treatment group
+```
+```{r}
+shapiro.test(DBHremove$Tree.growth.boxcox) # normal
+#library(car)
+leveneTest(Tree.growth.boxcox~Large, data = DBHremove) # variance are different between large and not-large groups
+leveneTest(Tree.growth.boxcox~Treatment, data = DBHremove) # variance can be considered as consistent across each Treatment group
+```
+
+
+
+
+
+
