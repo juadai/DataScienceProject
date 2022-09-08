@@ -5,9 +5,8 @@ output: html_document
 
 # data preparation
 ```{r}
-setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
-# load data
-data = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
+
+data = read.csv("./dataset/all_plots.csv", stringsAsFactors = FALSE)
 ```
 ```{r}
 summary(data)
