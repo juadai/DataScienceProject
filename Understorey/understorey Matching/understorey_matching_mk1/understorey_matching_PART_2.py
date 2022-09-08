@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import nltk
-
+'''
 ######################################
 # Import data and discard extra rows #
 ######################################
@@ -169,9 +169,42 @@ inter_tussock = ['CWD',
                  'MoSs/Lichen']
 
 observ = observ.loc[~observ['T002_Flora_Species_name'].isin(inter_tussock)]
+'''
+
+observ = pd.read_csv('../../dataset/joined_understorey_observations.csv')
+
+# Correct quadrat gaps
+
+plot_4 = {1: True,
+          3: True,
+          4: True,
+          5: True,
+          6: True,
+          9: True,
+          10: True,
+          11: True,
+          13: True,
+          14: True,
+          16: True}
+
+plot_8 = {12: False,
+          13: False}
+
+plot_9 = {1: False,
+          5: False}
+
+plot_12 = {28: False}
+
+to_fix = {4: plot_4, 8: plot_8, 9: plot_9, 12: plot_12}
+
+for i in to_fix.keys():
+    for j in to_fix[i].keys():
+        observ.loc[(observ['Plot_number']==i) &
+                   (observ['Quadrat_number']==j),
+                   'Quadrat_gap'] = to_fix[i][j]
 
 # observ.to_csv('./joined_understorey_observations.csv', index=False)
-
+'''
 
 ###########################################
 # Try to narrow # of life form categories #
@@ -181,4 +214,4 @@ observ_to_fix = observ.loc[observ['Life Form'].isin(pd.unique(flora2['Life Form'
 
 species_to_rematch = pd.unique(observ_to_fix['Scientific Name'])
 
-
+'''
