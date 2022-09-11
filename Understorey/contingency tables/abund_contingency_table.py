@@ -51,11 +51,10 @@ lf_abund = df.drop('Species Name', axis=1).groupby(
 ###########################
 
 # Aggregate life form abundance over quadrats?
-quads = True
+quads = False
 
 # Aggregate life form abundance over plots as well?
 plots = False
-
 
 
 if quads and not plots:
@@ -104,9 +103,32 @@ matrix_lf_abund.sort_index(inplace=True)
 
 
 # Caclulate change from year 0 to year 6
-for i in matrix_lf_abund.columns.levels[0]:
-    matrix_lf_abund.loc[:,(i, 'Change 0-6')] = matrix_lf_abund[(i, 6)] - matrix_lf_abund[(i, 0)]
+#for i in matrix_lf_abund.columns.levels[0]:
+#    matrix_lf_abund.loc[:,(i, 'Change 0-6')] = matrix_lf_abund[(i, 6)] - matrix_lf_abund[(i, 0)]
 
 
 
-# matrix_lf_abund.to_csv('./output/lf_abund_quadrats.csv')
+# Calculate relative life form abundances
+matrix_lf_abund_rel = matrix_lf_abund.divide(matrix_lf_abund.sum(axis=1), axis=0)
+
+
+# matrix_lf_abund.to_csv('./output/lf_abund_treatments.csv')
+
+
+# Format for analysis
+analysis_lf_abund = matrix_lf_abund.stack(-2)
+analysis_lf_abund_rel = matrix_lf_abund_rel.stack(-2)
+
+analysis_lf_abund = analysis_lf_abund.loc[~((analysis_lf_abund[0] == 0) &
+                                            (analysis_lf_abund[3] == 0) &
+                                            (analysis_lf_abund[6] == 0)),:]
+
+analysis_lf_abund_rel = analysis_lf_abund_rel.loc[~((analysis_lf_abund_rel[0] == 0) &
+                                                    (analysis_lf_abund_rel[3] == 0) &
+                                                    (analysis_lf_abund_rel[6] == 0)),:]
+
+analysis_lf_abund = analysis_lf_abund.stack()
+analysis_lf_abund_rel = analysis_lf_abund_rel.stack()
+
+# analysis_lf_abund.to_csv('./output/abundance/for analysis/lf_abund_analysis.csv')
+# analysis_lf_abund_rel.to_csv('./output/abundance/for analysis/lf_abund_rel_analysis.csv')

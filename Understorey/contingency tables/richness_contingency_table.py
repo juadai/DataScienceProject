@@ -92,7 +92,4 @@ for i in to_calculate:
     
     matrix_species_richness.loc[i[:-1], i[-1:]] = len(pd.unique(vector))
 
-    
-matrix_species_richness['Change 0-6'] = matrix_species_richness[6] - matrix_species_richness[0]
-
 matrix_species_richness.to_csv('./output/spcies_richness_quadrats.csv')

@@ -58,10 +58,10 @@ species_divers = df.groupby(['Treatment',
 ###########################
 
 # Aggregate life form abundance over quadrats?
-quads = False
+quads = True
 
 # Aggregate life form abundance over plots as well?
-plots = False
+plots = True
 
 
 
@@ -103,6 +103,6 @@ for i in to_calculate:
     matrix_species_divers.loc[i[:-1], i[-1:]] = SDI
 
     
-matrix_species_divers['Change 0-6'] = matrix_species_divers[6] - matrix_species_divers[0]
+#matrix_species_divers['Change 0-6'] = matrix_species_divers[6] - matrix_species_divers[0]
 
-matrix_species_divers.to_csv('./output/spcies_divers_quadrats.csv')
+matrix_species_divers.to_csv('./output/spcies_divers_treatments.csv')
