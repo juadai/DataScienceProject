@@ -6,6 +6,9 @@
 # Setup #
 #########
 
+library(rstudioapi)
+setwd(dirname(getActiveDocumentContext()$path))
+
 # Load data
 richness_df <- read.csv('../dataset/tables/species_richness_quadrats.csv')
 diversity_df <- read.csv('../dataset/tables/species_divers_quadrats.csv')
@@ -52,6 +55,7 @@ abundance_rel_df$response <- round(abundance_rel_df$response)
 
 # Richness: remove null rows
 richness_df <- na.omit(richness_df)
+diversity_df <- na.omit(diversity_df)
 
 #######################################
 # Richness Modeling: Year 0 to Year 3 #
@@ -90,8 +94,6 @@ anova(richness_Y0_Y3_01, richness_Y0_Y3_03, test='Chi')
 anova(richness_Y0_Y3_02, richness_Y0_Y3_03, test='Chi')
 # Cannot reject the hypothesis that there's no difference in fit
 # Keep model 2 (selected by AIC) over model 3 (selected by BIC)
-
-
 
 
 
@@ -361,6 +363,188 @@ c(exp(-0.3332-1.96*0.3821), exp(-0.3332+1.96*0.3821))
 
 
 
+###################################
+# Diversity Modeling: Year 0 to 3 #
+###################################
+
+# Model the probability that diversity increased between years 0 and 3
+diversity_df$Y0.Y3.Increase <- diversity_df$X3 > diversity_df$X0
+diversity_df$Y0.Y3.Increase <- as.numeric(diversity_df$Y0.Y3.Increase)
+
+# Model 1: Treatment, Fenced, Gap, first-order interaction terms
+diversity_Y0_Y3_01 <- glm(Y0.Y3.Increase ~ (Treatment + Fenced + Gap)^2,
+                          family='binomial', data=diversity_df)
+summary(diversity_Y0_Y3_01)
+# Nothing significant yet
+
+# Model 2: Step-wise selection fom Model 1 (AIC)
+diversity_Y0_Y3_02 <- step(diversity_Y0_Y3_01)
+summary(diversity_Y0_Y3_02)
+# Only Treatment is significant
+
+anova(diversity_Y0_Y3_01, diversity_Y0_Y3_02, test='Chi')
+# No significant difference between the models
+
+
+# Model 3: Check a model without interaction terms
+diversity_Y0_Y3_03 <- glm(Y0.Y3.Increase ~ Treatment + Fenced + Gap,
+                          family='binomial', data=diversity_df)
+summary(diversity_Y0_Y3_03)
+# Again, only treatment is significant
+
+
+# Model 4: Try step-wise selection (BIC)
+k = log(length(diversity_df[,1]))
+diversity_Y0_Y3_04 <- step(diversity_Y0_Y3_01, k=k)
+summary(diversity_Y0_Y3_04)
+# Only intercept is kept
+
+anova(diversity_Y0_Y3_04, diversity_Y0_Y3_02, test='Chi')
+# Treatment is significant at 95% significance level
+# Keep Model 2
+
+###########
+# Results #
+###########
+
+# There is not sufficient evidence to suggest that Fenced or Gap are significant
+summary(diversity_Y0_Y3_02)
+
+# Model 2: Intercept + Treatment
+
+# Estimated odds that diversity increased in a Gap Treatment quadrat (vs Control)
+exp(0.04498) # 1 ... Not significant
+
+# Estimated odds that diversity increased in a Radial Treatment quadrat (vs Control)
+exp(-0.87843) # 0.42
+
+# Estimated 95% CI for these odds
+c(exp(-0.87843-1.96*0.31185), exp(-0.87843+1.96*0.31185))
+# [0.23, 0.77] ... Significant
+
+
+
+
+###################################
+# Diversity Modeling: Year 3 to 6 #
+###################################
+
+# Model the probability that diversity increased between years 3 and 6
+diversity_df$Y3.Y6.Increase <- diversity_df$X6 > diversity_df$X3
+diversity_df$Y3.Y6.Increase <- as.numeric(diversity_df$Y3.Y6.Increase)
+
+# Model 1: Treatment, Fenced, Gap, with first-order interaction terms
+diversity_Y3_Y6_01 <- glm(Y3.Y6.Increase ~ (Treatment + Fenced + Gap)^2,
+                          family='binomial', data=diversity_df)
+summary(diversity_Y3_Y6_01)
+# Only treatment is significant
+
+# Model 2: Step-wise selection from Model 1 (AIC)
+diversity_Y3_Y6_02 <- step(diversity_Y3_Y6_01)
+summary(diversity_Y3_Y6_02)
+# Treatment and Gap are significant
+
+anova(diversity_Y3_Y6_02, diversity_Y3_Y6_01, test='Chi')
+# No significant evidence that the larger model is a better fit
+
+# Model 3: Step-wise selection from Model 1 (BIC)
+k = log(length(diversity_df[,1]))
+diversity_Y3_Y6_03 <- step(diversity_Y3_Y6_01)
+summary(diversity_Y3_Y6_03)
+# Same outcome
+
+###########
+# Results #
+###########
+
+# Not sufficient evidence that Fenced is significant
+
+# Model 3: Intercept + Treatment + Gap
+summary(diversity_Y3_Y6_03)
+
+# Estimated odds that diversity increased in a Gap Treatment quadrat (vs Control)
+exp(-0.0102) # 0.98 ... Not significant
+
+# Estimated odds that diversity increased in a Radial Treatment quadrat (vs Control)
+exp(1.2214) # 3.4
+
+# Estimated 95% CI for these odds
+c(exp(1.2214-1.96*0.3800), exp(1.2214+1.96*0.3800))
+# [1.6, 7.1] ... Significant
+
+# Estimated odds that diversity in an In Gap quadrat will increase (vs Not In Gap)
+exp(-0.6971) # 0.5
+
+# Estimated 95% CI for these odds
+c(exp(-0.6971-1.96*0.3227), exp(-0.6971+1.96*0.3227))
+# [0.26, 0.94] ... Significant
+
+
+###################################
+# Diversity Modeling: Year 0 to 6 #
+###################################
+
+# Model the probability that diversity increased between years 0 and 6
+diversity_df$Y0.Y6.Increase <- diversity_df$X6 > diversity_df$X0
+diversity_df$Y0.Y6.Increase <- as.numeric(diversity_df$Y0.Y6.Increase)
+
+# Model 1: Treatment, Fenced, Gap, and first-order interaction terms
+diversity_Y0_Y6_01 <- glm(Y0.Y6.Increase ~ (Treatment + Fenced + Gap)^2,
+                          family='binomial', data=diversity_df)
+summary(diversity_Y0_Y6_01)
+# Only intercept is signficant
+
+
+# Model 2: Step-wise selection from Model 1 (AIC)
+diversity_Y0_Y6_02 <- step(diversity_Y0_Y6_01)
+summary(diversity_Y0_Y6_02)
+# Fenced, Gap, and Interaction remain in the model, but not significant
+anova(diversity_Y0_Y6_02, diversity_Y0_Y6_01, test='Chi')
+# No significant difference between the two models
+
+
+# Model 3: Step-wise selection from Model 1 (BIC)
+k = log(length(diversity_df[,1]))
+diversity_Y0_Y6_03 <- step(diversity_Y0_Y6_01, k=k)
+summary(diversity_Y0_Y6_03)
+# Only intercept remains
+
+anova(diversity_Y0_Y6_03, diversity_Y0_Y6_02, test='Chi')
+
+# Model 4: Try without interaction
+
+###########
+# Results #
+###########
+
+# Let's check the interpretation of model selected through AIC
+
+# Model 2: Intercept + Fenced + Gap + Intercept:Gap
+summary(diversity_Y0_Y6_02)
+
+# Estimated odds that diversity will increase in a quadrat that's In Gap, Not Fenced
+# (vs Not In Gap, Not Fenced)
+exp(-0.3437) # 0.71
+
+# Estimated 95% CI for this interval
+c(exp(-0.3437-1.96*0.3120), exp(-0.3437+1.96*0.3120))
+# [0.39, 1.3] ... Not significant
+
+
+# Estimated odds that diversity will increase in a quadrat that's Fenced, Not In Gap
+# (vs Not In Gap, Not Fenced)
+exp(0.8884) # 2.43
+
+# Estimated 95% CI for this interval
+c(exp(0.8884-1.96*0.5146), exp(0.8884+1.96*0.5146))
+# [0.88, 6.67] ... Not significant
+
+
+# Estimated odds that diversity will increase in a quadrat that's Fenced, In Gap
+# (vs Not In Gap, Not Fenced)
+exp(0.8884-0.3437-0.9349) # 0.68
+
+# Can't remember how to calculate CI. But it's probably pretty wide (includes 1)
 
 
 ############################################
