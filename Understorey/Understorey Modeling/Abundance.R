@@ -37,9 +37,9 @@ abundance_rel_df$response <- round(abundance_rel_df$response)
 # Weight for BIC
 k <- log(length(abundance_rel_df$response))
 
-###############################
-# Relative Abundance Modeling #
-###############################
+###########################################
+# Relative Abundance Modeling: Log-linear #
+###########################################
 
 model1 <- glm(response ~ (Treatment + Fenced + Gap + Life.Form + Year)^2, 
               family='poisson', data=abundance_rel_df)
@@ -161,6 +161,54 @@ anova(
 )
 # Still wants to keep the high order interaction terms
 
+palette("R4")
+plot(abundance_df$X0,
+     col=abundance_df$Life.Form,
+     pch=16)
+
+
+# Can we get rid of some life forms 
+# (i.e. simplify this factor, fewer parameters in modeling?)
+
+lf <- unique(abundance_df$Life.Form)
+n <- length(lf)
+abund = rep(0,n)
+for (i in 1:n) {
+  abund[i] <- sum(abundance_df[abundance_df$Life.Form==lf[i], 'X0'])
+}
+names(abund) <- lf
+plot(sort(abund, decreasing=TRUE))
+
+sum(abund > 10)
+sum(abund > 50)
+sum(abund > 100)
+sum(abund > 200)
+
+rel_abund = rep(0,n)
+for (i in 1:n) {
+  rel_abund[i] <- sum(abundance_rel_df[abundance_rel_df$Life.Form==lf[i], 'X0'])
+}
+names(rel_abund) <- lf
+round(rel_abund*100,4)
+plot(sort(rel_abund, decreasing=TRUE))
+
+sum(rel_abund > 1)
+sum(rel_abund > 2.5)
+sum(rel_abund > 5)
+sum(rel_abund > 8)
+sum(rel_abund > 10)
+
+rel_abund <- rel_abund[rel_abund>10]
+abundance_rel_df <- abundance_rel_df[abundance_rel_df$Life.Form %in% names(rel_abund),]
+
+
+model1.1 <- glm(response ~ (Treatment + Fenced + Gap + Life.Form + Year)^3, 
+                family='poisson', data=abundance_rel_df)
+k=log(length(abundance_rel_df$response))
+model2.1 <- step(model1.1, k=k)
+summary(model2.1)
+
+# It doesn't really help at all
 
 
 
