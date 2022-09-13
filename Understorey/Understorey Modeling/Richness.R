@@ -4,6 +4,8 @@
 
 # Load data
 library(rstudioapi)
+library(pROC)
+
 setwd(dirname(getActiveDocumentContext()$path))
 richness_df <- read.csv('../dataset/tables/species_richness_quadrats.csv')
 richness_df_plot <- read.csv('../contingency tables/output/richness/species_richness_plots.csv')
@@ -23,6 +25,25 @@ richness_df_plot$Fenced <- richness_df_plot$Fenced=='True'
 # Remove null rows
 richness_df <- na.omit(richness_df)
 richness_df_plot <- na.omit(richness_df_plot)
+
+# Define function to diagnose binomial response
+confusion <- function(model, y, data, threshold) {
+  
+  y_hat <- predict(model, data, type='response') > threshold
+  conf <- matrix(0, nrow=2, ncol=2)
+  rownames(conf) <- c('Predict 1', 'Predict 0')
+  colnames(conf) <- c('Observe 1', 'Observe 0')
+  
+  conf[1,1] <- sum(y==1 & y_hat==1)
+  conf[1,2] <- sum(y==0 & y_hat==1)
+  conf[2,1] <- sum(y==1 & y_hat==0)
+  conf[2,2] <- sum(y==0 & y_hat==0)
+  
+  tp_rate <- conf[1,1] / sum(conf[1,]) # Sensitivity
+  tn_rate <- conf[2,2] / sum(conf[2,]) # Specificity
+  
+  return(list(Confusion=conf, Sensitivity=tp_rate, Specificity=tn_rate))
+}
 
 #######################################
 # Richness Modeling: Year 0 to Year 3 #
@@ -136,11 +157,15 @@ exp(0.10991) # 1.12
 c(exp(0.10991-1.96*0.31672), exp(0.10991+1.96*0.31672))
 # [0.6, 2.1] ... No significant difference Gap vs Control
 
+c <- confusion(richness_Y0_Y3_05, richness_df$Y0.Y3.Increase, richness_df, 0.5)
 
+c$Confusion
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
 
-##################################
-# Richness Modeling: Year 3 to 6 #
-##################################
+r <- roc(richness_df$Y0.Y3.Increase, predict(richness_Y0_Y3_05, richness_df, type='response'))
+auc(r)
+plot.roc(r)
 
 
 # Model the probability that richness increased between years 3 and 6
@@ -222,6 +247,17 @@ fenced <- predict(richness_Y3_Y6_03, richness_df[130,])
 unfenced <- predict(richness_Y3_Y6_03, richness_df[1,])
 1/(1+exp(unfenced))
 # 0.68
+
+
+c <- confusion(richness_Y3_Y6_03, richness_df$Y3.Y6.Increase, richness_df, 0.5)
+
+c$Confusion
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
+
+r <- roc(richness_df$Y3.Y6.Increase, predict(richness_Y3_Y6_03, richness_df, type='response'))
+auc(r)
+plot.roc(r)
 
 
 
@@ -327,6 +363,18 @@ exp(-0.3332) # 0.72
 # 95% CI for these odds
 c(exp(-0.3332-1.96*0.3821), exp(-0.3332+1.96*0.3821))
 # [0.34, 1.5] ... Cannot say that this is significant
+
+
+
+c <- confusion(richness_Y0_Y6_05, richness_df$Y0.Y6.Increase, richness_df, 0.5)
+
+c$Confusion
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
+
+r <- roc(richness_df$Y0.Y6.Increase, predict(richness_Y3_Y6_03, richness_df, type='response'))
+auc(r)
+plot.roc(r)
 
 
 

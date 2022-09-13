@@ -4,6 +4,8 @@
 
 # Load data
 library(rstudioapi)
+library(pROC)
+
 setwd(dirname(getActiveDocumentContext()$path))
 diversity_df <- read.csv('../dataset/tables/species_divers_quadrats.csv')
 diversity_df_plot <- read.csv('../contingency tables/output/diversity/species_divers_plots.csv')
@@ -25,6 +27,25 @@ diversity_df_plot$Fenced <- diversity_df_plot$Fenced=='True'
 # Remove null rows
 diversity_df <- na.omit(diversity_df)
 diversity_df_plot <- na.omit(diversity_df_plot)
+
+# Define function to diagnose binomial response
+confusion <- function(model, y, data, threshold) {
+  
+  y_hat <- predict(model, data, type='response') > threshold
+  conf <- matrix(0, nrow=2, ncol=2)
+  rownames(conf) <- c('Predict 1', 'Predict 0')
+  colnames(conf) <- c('Observe 1', 'Observe 0')
+  
+  conf[1,1] <- sum(y==1 & y_hat==1)
+  conf[1,2] <- sum(y==0 & y_hat==1)
+  conf[2,1] <- sum(y==1 & y_hat==0)
+  conf[2,2] <- sum(y==0 & y_hat==0)
+  
+  tp_rate <- conf[1,1] / sum(conf[1,]) # Sensitivity
+  tn_rate <- conf[2,2] / sum(conf[2,]) # Specificity
+  
+  return(list(Confusion=conf, Sensitivity=tp_rate, Specificity=tn_rate))
+}
 
 ###################################
 # Diversity Modeling: Year 0 to 3 #
@@ -86,6 +107,17 @@ c(exp(-0.87843-1.96*0.31185), exp(-0.87843+1.96*0.31185))
 # [0.23, 0.77] ... Significant
 
 
+r <- roc(diversity_df$Y0.Y3.Increase, predict(diversity_Y0_Y3_02, diversity_df, type='response'))
+r$auc #0.60
+plot.roc(r)
+
+c <- confusion(diversity_Y0_Y3_02, diversity_df$Y0.Y3.Increase, diversity_df, 0.5)
+
+c$Confusion # Matrix
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
+
+# This model wouldn't generalise, i.e. not really effective for prediction
 
 
 ###################################
@@ -141,6 +173,18 @@ exp(-0.6971) # 0.5
 # Estimated 95% CI for these odds
 c(exp(-0.6971-1.96*0.3227), exp(-0.6971+1.96*0.3227))
 # [0.26, 0.94] ... Significant
+
+
+r <- roc(diversity_df$Y3.Y6.Increase, predict(diversity_Y3_Y6_03, diversity_df, type='response'))
+r$auc # 0.64
+plot.roc(r)
+
+c <- confusion(diversity_Y3_Y6_03, diversity_df$Y3.Y6.Increase, diversity_df, 0.5)
+
+c$Confusion # Matrix
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
+
 
 
 ###################################
@@ -211,6 +255,18 @@ exp(0.8884-0.3437-0.9349) # 0.68
 # Use the Inverse Hessian I think
 # But it's probably pretty wide (I expect it includes 1)
 
+
+r <- roc(diversity_df$Y0.Y6.Increase, predict(diversity_Y0_Y6_02, diversity_df, type='response'))
+r$auc # 0.64
+plot.roc(r)
+
+c <- confusion(diversity_Y0_Y6_02, diversity_df$Y0.Y6.Increase, diversity_df, 0.5)
+
+c$Confusion # Matrix
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
+
+# ROC curve for Model 2 is a bit better than null model
 
 #######################
 # Explore & Visualise #
