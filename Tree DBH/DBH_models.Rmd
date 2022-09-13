@@ -485,3 +485,25 @@ abline(0,1)
 
 
 
+```{r}
+
+DBHdata$log_DBH.year.0 <- log(DBHdata$DBH.year.0)
+DBHdata$log_DBH.year.6 <- log(DBHdata$DBH.year.6)
+
+log_model_01 <- glm(log_DBH.year.6 ~ (log_DBH.year.0 + Treatment + Large)^2, family='gaussian', data=DBHdata)
+
+# Step-wise selection (AIC)
+log_model_02 <- step(log_model_01, trace=F)
+summary(log_model_02)
+
+# Step-wise selection (BIC)
+k <- log(length(DBHdata$log_DBH.year.6))
+log_model_03 <- step(log_model_01, k=k, trace=F)
+summary(log_model_03)
+
+# H_0: No significant difference in the fit of models 2 and 3
+anova(log_model_02, log_model_03, test='Chi')
+# Reject H_0 ... the larger model (2) is useful
+```
+
+
