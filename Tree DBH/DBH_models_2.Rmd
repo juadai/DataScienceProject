@@ -1,0 +1,287 @@
+---
+title: "DBH models 2"
+output: html_document
+---
+
+This file contains models using DBH.year.6 as response variable. It aims at all hypotheses except for the last one (- The rate of natural mortality will be greater in control plots as compared to T1 and T2.)
+
+
+
+# data preparation
+```{r}
+setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
+# load data
+data = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
+```
+```{r}
+summary(data)
+sapply(data, typeof)
+sapply(data[c(2,3,4,5,8,9,10,11,12,13,14,15)], unique)
+```
+
+only extract DBH-related data for DBH modelling
+```{r}
+DBHdata = data[1:9]
+```
+
+check NAs and blank
+```{r}
+# blank "Large", assume "No" where it's blank
+DBHdata[DBHdata$Large == "", "Tree.Number"]
+DBHdata[DBHdata$Large == "", "Large"] = "No"
+```
+```{r}
+# remove rows with NA in "DBH.year.6"
+DBHdata[is.na(DBHdata$DBH.year.6), 1:7] # 9 NAs for "DBH.year.6"
+DBHdata = DBHdata[!is.na(DBHdata$DBH.year.6), ]
+```
+```{r}
+# remove rows with NA in "DBH.year.0"
+DBHdata[is.na(DBHdata$DBH.year.0), 1:7] # 2 NAs for "DBH.year.0"
+DBHdata = DBHdata[!is.na(DBHdata$DBH.year.0), ]
+```
+```{r}
+# NA in "Class.year.0" and NA in "Class.year.6", no modification
+DBHdata[is.na(DBHdata$Class.year.0) | is.na(DBHdata$Class.year.6), ]
+# both in Plot5(T2: Radial), Tree.Number 148, 149, they have extremely large DBH.
+```
+
+make Treatment and Large factor
+```{r}
+DBHdata$Treatment = factor(DBHdata$Treatment)
+DBHdata$Large = factor(DBHdata$Large)
+```
+
+DBH.year.6 <= DBH.year.0
+```{r}
+DBHdata[DBHdata$DBH.year.6 <= DBHdata$DBH.year.0, ]
+DBHpositive = DBHdata[DBHdata$DBH.year.6 > DBHdata$DBH.year.0, ]
+```
+
+
+
+# data analysis
+```{r}
+par(mfrow=c(2,2))
+plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p")
+plot(log(DBHdata$DBH.year.0), log(DBHdata$DBH.year.6), type = "p")
+plot(DBHpositive$DBH.year.0, DBHpositive$DBH.year.6, type = "p")
+plot(log(DBHpositive$DBH.year.0), log(DBHpositive$DBH.year.6), type = "p")
+
+plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = DBHdata$Treatment)
+plot(log(DBHdata$DBH.year.0), log(DBHdata$DBH.year.6), type = "p", col = DBHdata$Treatment)
+plot(DBHpositive$DBH.year.0, DBHpositive$DBH.year.6, type = "p", col = DBHpositive$Treatment)
+plot(log(DBHpositive$DBH.year.0), log(DBHpositive$DBH.year.6), type = "p", col = DBHpositive$Treatment)
+
+plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = DBHdata$Large)
+plot(log(DBHdata$DBH.year.0), log(DBHdata$DBH.year.6), type = "p", col = DBHdata$Large)
+plot(DBHpositive$DBH.year.0, DBHpositive$DBH.year.6, type = "p", col = DBHpositive$Large)
+plot(log(DBHpositive$DBH.year.0), log(DBHpositive$DBH.year.6), type = "p", col = DBHpositive$Large)
+```
+```{r}
+# points outside the main group
+plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6/DBHdata$DBH.year.0, type = "p", col = factor(DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 0.9 | DBHdata$DBH.year.0 > 80))
+plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = factor(DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 0.9 | DBHdata$DBH.year.0 > 80))
+DBHdata[DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 0.9 | DBHdata$DBH.year.0 > 80, ]
+
+# remove these outliers
+DBHdatarm = DBHdata[DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 1.25 & DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 0.9 & DBHdata$DBH.year.0 < 80, ]
+DBHpositiverm = DBHpositive[DBHpositive$DBH.year.6/DBHpositive$DBH.year.0 < 1.25 & DBHpositive$DBH.year.0 < 80, ]
+```
+```{r}
+cor(DBHdata$DBH.year.0, DBHdata$DBH.year.6)
+cor(log(DBHdata$DBH.year.0), log(DBHdata$DBH.year.6))
+
+cor(DBHpositive$DBH.year.0, DBHpositive$DBH.year.6)
+cor(log(DBHpositive$DBH.year.0), log(DBHpositive$DBH.year.6))
+
+cor(DBHdatarm$DBH.year.0, DBHdatarm$DBH.year.6)
+cor(log(DBHdatarm$DBH.year.0), log(DBHdatarm$DBH.year.6))
+
+cor(DBHpositiverm$DBH.year.0, DBHpositiverm$DBH.year.6)
+cor(log(DBHpositiverm$DBH.year.0), log(DBHpositiverm$DBH.year.6))
+```
+```{r}
+shapiro.test(DBHdata$DBH.year.6)
+shapiro.test(log(DBHdata$DBH.year.6))
+
+shapiro.test(DBHpositive$DBH.year.6)
+shapiro.test(log(DBHpositive$DBH.year.6))
+
+shapiro.test(DBHdatarm$DBH.year.6)
+shapiro.test(log(DBHdatarm$DBH.year.6))
+
+shapiro.test(DBHpositiverm$DBH.year.6)
+shapiro.test(log(DBHpositiverm$DBH.year.6)) # closest to normal
+```
+```{r}
+library(car)
+leveneTest(DBH.year.6~Treatment, data = DBHdata)
+leveneTest(DBH.year.6~Large, data = DBHdata)
+
+leveneTest(log(DBH.year.6)~Treatment, data = DBHdata) # constant variance
+leveneTest(log(DBH.year.6)~Large,data = DBHdata) # different variance
+
+leveneTest(DBH.year.6~Treatment, data = DBHpositive) # constant variance
+leveneTest(DBH.year.6~Large, data = DBHpositive) # constant variance
+
+leveneTest(log(DBH.year.6)~Treatment, data = DBHpositive) # 2nd most constant variance
+leveneTest(log(DBH.year.6)~Large, data = DBHpositive) # 3rd most different variance
+
+leveneTest(DBH.year.6~Treatment, data = DBHdatarm)
+leveneTest(DBH.year.6~Large, data = DBHdatarm) # constant variance
+
+leveneTest(log(DBH.year.6)~Treatment, data = DBHdatarm) # 3rd most constant variance
+leveneTest(log(DBH.year.6)~Large,data = DBHdatarm) # 2nd most different variance
+
+leveneTest(DBH.year.6~Treatment, data = DBHpositiverm) # constant variance
+leveneTest(DBH.year.6~Large, data = DBHpositiverm) # constant variance
+
+leveneTest(log(DBH.year.6)~Treatment, data = DBHpositiverm) # most constant variance
+leveneTest(log(DBH.year.6)~Large, data = DBHpositiverm) # most different variance
+```
+```{r}
+library(fitdistrplus)
+descdist(log(DBHdata$DBH.year.6))
+descdist(log(DBHpositive$DBH.year.6)) # close to normal
+descdist(log(DBHdatarm$DBH.year.6)) # could be considered as normal
+descdist(log(DBHpositiverm$DBH.year.6)) # could be considered as normal
+
+descdist(DBHdatarm$DBH.year.6)
+descdist(DBHpositiverm$DBH.year.6)
+```
+
+log(DBHpositive$DBH.year.6), log(DBHdatarm$DBH.year.6) and log(DBHpositiverm$DBH.year.6) share same properties:
+1. close to normal distribution, or could be considered as normal distribution.
+2. constant variance across Treatment groups(top3 largest Levene's test Pr(>F)value), but very different variance across Large groups(top3 smallest Levene's test Pr(>F)value).
+  In other word, they have this Large-group-variance-difference situation most significantly. This is actually not a very bad thing if we can make the model capture this Large-group-variance-difference.
+
+
+
+# fit glm models
+gaussian glm for DBHdata$DBH.year.6, could be considered as a baseline model
+```{r}
+# best model derived from DBH.year.6~DBH.year.0*Treatment*Large
+glm0 = glm(DBH.year.6~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHdata)
+summary(glm0)
+
+tss = sum((DBHdata$DBH.year.6-mean(DBHdata$DBH.year.6))^2) #TSS
+rss = sum((DBHdata$DBH.year.6-glm0$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9467556
+
+par(mfrow=c(2,2))
+plot(glm0)
+par(mfrow=c(1,1))
+plot(DBHdata$DBH.year.6, glm0$fitted.values, type = "p", col = DBHdata$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(DBHdata$DBH.year.6, glm0$fitted.values, type = "p", col = DBHdata$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+```
+
+gaussian glm for DBHpositiverm$DBH.year.6. It has constant variance across all groups and has lognormal distribution.
+```{r}
+glm1.0 = glm(DBH.year.6~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHpositiverm)
+summary(glm1.0)
+
+tss = sum((DBHpositiverm$DBH.year.6-mean(DBHpositiverm$DBH.year.6))^2) #TSS
+rss = sum((DBHpositiverm$DBH.year.6-glm1.0$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9801139
+
+par(mfrow=c(2,2))
+plot(glm1.0)
+par(mfrow=c(1,1))
+plot(DBHpositiverm$DBH.year.6, glm1.0$fitted.values, type = "p", col = DBHpositiverm$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(DBHpositiverm$DBH.year.6, glm1.0$fitted.values, type = "p", col = DBHpositiverm$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+```
+
+gaussian glm for log(DBHpositive$DBH.year.6)
+```{r}
+glm1.1 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+Large+log(DBH.year.0):Large+Treatment:Large, data = DBHpositive)
+summary(glm1.1)
+
+tss = sum((log(DBHpositive$DBH.year.6)-mean(log(DBHpositive$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHpositive$DBH.year.6)-glm1.1$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9554377
+
+par(mfrow=c(2,2))
+plot(glm1.1)
+par(mfrow=c(1,1))
+plot(log(DBHpositive$DBH.year.6), glm1.1$fitted.values, type = "p", col = DBHpositive$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(log(DBHpositive$DBH.year.6), glm1.1$fitted.values, type = "p", col = DBHpositive$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+```
+
+gaussian glm for log(DBHdatarm$DBH.year.6)
+```{r}
+glm1.2 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+Large+log(DBH.year.0):Large+Treatment:Large, data = DBHdatarm)
+summary(glm1.2)
+anova(glm1.2)
+
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-glm1.2$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9783684
+
+par(mfrow=c(2,2))
+plot(glm1.2)
+par(mfrow=c(1,1))
+plot(log(DBHdatarm$DBH.year.6), glm1.2$fitted.values, type = "p", col = DBHdatarm$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(log(DBHdatarm$DBH.year.6), glm1.2$fitted.values, type = "p", col = DBHdatarm$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+```
+
+gaussian glm for log(DBHpositiverm$DBH.year.6)
+```{r}
+glm1.3 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+Large+log(DBH.year.0):Large+Treatment:Large, data = DBHpositiverm)
+summary(glm1.3)
+anova(glm1.3)
+
+tss = sum((log(DBHpositiverm$DBH.year.6)-mean(log(DBHpositiverm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHpositiverm$DBH.year.6)-glm1.3$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9826943
+
+par(mfrow=c(2,2))
+plot(glm1.3)
+par(mfrow=c(1,1))
+plot(log(DBHpositiverm$DBH.year.6), glm1.3$fitted.values, type = "p", col = DBHpositiverm$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(log(DBHpositiverm$DBH.year.6), glm1.3$fitted.values, type = "p", col = DBHpositiverm$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+```
+
+# ------------------------------------------------------------------------------------------
+- All models fit the data very well with very high R^2 values.This is due to the very strong linear correlation between the response variable DBH.year.6 & log(DBH.year.6) and one predictor DBH.year.0 & log(DBH.year.0).
+- However, even though with the prescence of DBH.year.0, the other two categorical predictors (Treatment, Large) still are very significant.
+- The result formula is the same for all models. In some models, intercept is not significant, we are keeping it at prescent.
+- The estimated parameters satisfy all the hypotheses (in a similar way as previous models):
+  1. T2>T1>Control, large>not-large
+  2. being T2, and especially being T2&Large has great increase in tree growth.
+  3. the estimated parameter for term DBH.year.0:LargeYes is a small negative value.
+  
+# ------------------------------------------------------------------------------------------
+gaussian glm for log(DBHdatarm$DBH.year.6) seems to be the "best" model so far. Although it has the 3rd largest R^2 value (0.9783684 < 0.9801139 < 0.9826943), it has the smallest residuals and a normal distribution.
+- Guess (not sure): there might be some improvement if we can take in account Large-group-variance-difference? but HOW?
+- Need very convincing explanation for the removed points.
+
+gaussian glm for DBHpositiverm$DBH.year.6 might also be a considerable model. It has constant variance across all groups and has lognormal distribution. It has the 2nd largest R^2 value (0.9801139). Although its residuals have larger range than other log() models, compared to the range of predicted values, they are actually not that very large.
+- Still need improvement if choose this model, and need very convincing explanation for the removed points.
+# ------------------------------------------------------------------------------------------
+
+
+
+
+
+
