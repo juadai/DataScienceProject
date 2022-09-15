@@ -28,6 +28,7 @@ for i in df.index:
 
 df.drop(['Record_ID', 'Score'], inplace=True, axis=1)
 
+
 df = df.groupby(by=['Plot_treatment',
                     'Plot_number',
                     'Quadrat_fenced',
@@ -35,14 +36,6 @@ df = df.groupby(by=['Plot_treatment',
                     'Quadrat_number',
                     'Year_monitoring',
                     'Life Form']).sum()
-
-
-df = df.groupby(by=['Plot_treatment',
-                    'Plot_number',
-                    'Quadrat_fenced',
-                    'Quadrat_gap',
-                    'Year_monitoring',
-                    'Life Form']).mean()
 
 df.reset_index('Life Form', inplace=True)
 
@@ -57,4 +50,17 @@ for i in df.index:
         matrix.loc[i, lf] = val
 
 matrix.drop_duplicates(inplace=True)
-matrix.to_csv('../outputs/observations_matrix2.csv')
+
+matrix.fillna(0, inplace=True)
+
+matrix.to_csv('../outputs/abundances_sum.csv')
+
+# Relative life form abundances
+# Relative abundance of a species =
+# its abundance as a proportion of total abundance in the quadrat
+# (Original score = abundance relative to the size of the quadrat)
+totals = matrix.sum(axis=1)
+matrix = matrix.divide(totals, axis='rows')
+
+
+matrix.to_csv('../outputs/observations_rel_abundances.csv')

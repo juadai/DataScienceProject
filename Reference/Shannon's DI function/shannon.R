@@ -10,15 +10,15 @@ Shannon <- function (vector) {
   
   # Vector containing abundance of each species
   a = Abundance[scores]
-
+  print(a)
   # Vector containing abundance of each species as a proportion of total
   p = a/sum(a)
-  
+  print(p)
   # Apply formula for Shannon's Diversity Index
   return(-sum(log(p)*p))
 }
 
-
+Shannon(c(1,2,3))
 
 # Test function
 dummy_data <- data.frame(
