@@ -432,7 +432,7 @@ plot(diversity_df$X6-diversity_df$X0,
      main="Change in diversity: Y0 to Y6")
 lines(-25:300, rep(mean(diversity_df$X6-diversity_df$X0),326),
       col='red')
-legend('topleft', c('Unfenced', 'Fenced'), pch=16, bty='n',
+legend('topleft', c('Fenced', 'Unfenced'), pch=16, bty='n',
        col=cols2)
 
 # Change in SDI Y0 to Y3
@@ -442,7 +442,7 @@ plot(diversity_df$X3-diversity_df$X0,
      main="Change in diversity: Y0 to Y3")
 lines(-25:300, rep(mean(diversity_df$X3-diversity_df$X0),326),
       col='red')
-legend('topleft', c('Unfenced', 'Fenced'), pch=16, bty='n',
+legend('topleft', c('Fenced', 'Unfenced'), pch=16, bty='n',
        col=cols2)
 
 # Change in SDI Y3 to Y6
@@ -452,7 +452,7 @@ plot(diversity_df$X6-diversity_df$X3,
      main="Change in diversity: Y3 to Y6")
 lines(-25:300, rep(mean(diversity_df$X6-diversity_df$X3),326),
       col='red')
-legend('topleft', c('Unfenced', 'Fenced'), pch=16, bty='n',
+legend('topleft', c('Fenced', 'Unfenced'), pch=16, bty='n',
        col=cols2)
 
 
@@ -504,7 +504,7 @@ plot(diversity_df$X6-diversity_df$X0,
      main="Change in diversity: Y0 to Y6")
 lines(-25:300, rep(mean(diversity_df$X6-diversity_df$X0),326),
       col='red')
-legend('topleft', c('Unfenced', 'Fenced'), pch=16, bty='n',
+legend('topleft', c('In Gap', 'Not in Gap'), pch=16, bty='n',
        col=cols2)
 
 # Change in SDI Y0 to Y3
@@ -514,7 +514,7 @@ plot(diversity_df$X3-diversity_df$X0,
      main="Change in diversity: Y0 to Y3")
 lines(-25:300, rep(mean(diversity_df$X3-diversity_df$X0),326),
       col='red')
-legend('topleft', c('Not in Gap', 'In Gap'), pch=16, bty='n',
+legend('topleft', c('In Gap', 'Not in Gap'), pch=16, bty='n',
        col=cols2)
 
 # Change in SDI Y3 to Y6
@@ -524,7 +524,7 @@ plot(diversity_df$X6-diversity_df$X3,
      main="Change in diversity: Y3 to Y6")
 lines(-25:300, rep(mean(diversity_df$X6-diversity_df$X3),326),
       col='red')
-legend('topleft', c('Not in Gap', 'In Gap'), pch=16, bty='n',
+legend('topleft', c('In Gap', 'Not in Gap'), pch=16, bty='n',
        col=cols2)
 
 
@@ -536,7 +536,7 @@ plot(abs(diversity_df$X6-diversity_df$X0),
      main="Change in diversity: Y0 to Y6")
 lines(-25:300, rep(mean(abs(diversity_df$X6-diversity_df$X0)),326),
       col='red')
-legend('topleft', c('Not in Gap', 'In Gap'), pch=16, bty='n',
+legend('topleft', c('In Gap', 'Not in Gap'), pch=16, bty='n',
        col=cols2)
 
 # Magnitude of change in SDI  Y0 to Y3
@@ -546,7 +546,7 @@ plot(abs(diversity_df$X3-diversity_df$X0),
      main="Change in diversity: Y0 to Y3")
 lines(-25:300, rep(mean(abs(diversity_df$X3-diversity_df$X0)),326),
       col='red')
-legend('topleft', c('Not in Gap', 'In Gap'), pch=16, bty='n',
+legend('topleft', c('In Gap', 'Not in Gap'), pch=16, bty='n',
        col=cols2)
 
 # Magnitude of change in SDI Y3 to Y6
@@ -556,11 +556,7 @@ plot(abs(diversity_df$X6-diversity_df$X3),
      main="Change in diversity: Y3 to Y6")
 lines(-25:300, rep(mean(abs(diversity_df$X6-diversity_df$X3)),326),
       col='red')
-legend('topleft', c('Not in Gap', 'In Gap'), pch=16, bty='n',
+legend('topleft', c('In Gap', 'Not in Gap'), pch=16, bty='n',
        col=cols2)
-
-
-
-
 
 
