@@ -1,12 +1,17 @@
 ---
-title: "DBH models"
+title: "DBH models 1"
 output: html_document
 ---
 
+This file contains models using Tree.growth(=DBH.year.6-DBH.year.0) as response variable. It aims at all hypotheses.
+
+
+
 # data preparation
 ```{r}
-
-data = read.csv("./dataset/all_plots.csv", stringsAsFactors = FALSE)
+setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
+# load data
+data = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
 ```
 ```{r}
 summary(data)
@@ -412,103 +417,4 @@ Not sure about definition: relative increase ?= Tree.growth/DBH.year.0 ?
 
 
 
-
-# fit glm for DBH.year.6~DBH.year.0 + categorical predictors
-```{r}
-plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p") # 8 points outside main group
-DBHrm = DBHdata[DBHdata$Tree.growth < 10 & DBHdata$DBH.year.0 < 80, ] # dataframe without the 8 rows
-```
-```{r}
-plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = DBHdata$Treatment)
-legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
-plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = DBHdata$Large)
-legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
-plot(DBHrm$DBH.year.0, DBHrm$DBH.year.6, type = "p", col = DBHrm$Treatment)
-legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
-plot(DBHrm$DBH.year.0, DBHrm$DBH.year.6, type = "p", col = DBHrm$Large)
-legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
-
-cor(DBHdata$DBH.year.0, DBHdata$DBH.year.6) #0.9679595
-```
-
-glm using all data
-```{r}
-# best model derived from DBH.year.6~DBH.year.0*Treatment*Large
-glm3.0 = glm(DBH.year.6~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHdata)
-summary(glm3.0)
-
-tss = sum((DBHdata$DBH.year.6-mean(DBHdata$DBH.year.6))^2) #TSS
-rss = sum((DBHdata$DBH.year.6-glm3.0$fitted.values)^2) #RSS
-(tss-rss)/tss #R^2 = 0.9541006
-
-par(mfrow=c(2,2))
-plot(glm3.0)
-par(mfrow=c(1,1))
-plot(DBHdata$DBH.year.6, glm3.0$fitted.values, type = "p", col = DBHdata$Treatment)
-legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
-abline(0,1)
-plot(DBHdata$DBH.year.6, glm3.0$fitted.values, type = "p", col = DBHdata$Large)
-legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
-abline(0,1)
-```
-
-glm using DBHrm
-```{r}
-# same formula as glm3.0
-glm4.0 = glm(DBH.year.6~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHrm)
-summary(glm4.0)
-
-tss = sum((DBHrm$DBH.year.6-mean(DBHrm$DBH.year.6))^2) #TSS
-rss = sum((DBHrm$DBH.year.6-glm4.0$fitted.values)^2) #RSS
-(tss-rss)/tss #R^2 = 0.9801139
-
-par(mfrow=c(2,2))
-plot(glm4.0)
-par(mfrow=c(1,1))
-plot(DBHrm$DBH.year.6, glm4.0$fitted.values, type = "p", col = DBHrm$Treatment)
-legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
-abline(0,1)
-plot(DBHrm$DBH.year.6, glm4.0$fitted.values, type = "p", col = DBHrm$Large)
-legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
-abline(0,1)
-```
-
-- Both glm3.0 and glm4.0 fit the data very well with very high R^2 values.
-- Although residuals are not very small, and data still has heavy tails in the Normal Q-Q plots, the models still fit very well. This is due to the very strong linear correlation between the response variable DBH.year.6 and one predictor DBH.year.0.
-- However, even though with the prescence of DBH.year.0, the other two categorical predictors (Treatment, Large) still are very significant.
-- The result formula is the same as formula used in models for Tree.growth. The estimated parameters satisfy all the hypotheses (in a similar way as previous models): 
-  1. T2>T1>Control, large>not-large
-  2. being T2, and especially being T2&Large has great increase in tree growth.
-  3. the estimated parameter for term DBH.year.0:LargeYes is a small negative value.
-
-
-
-
-
-```{r}
-
-DBHdata$log_DBH.year.0 <- log(DBHdata$DBH.year.0)
-DBHdata$log_DBH.year.6 <- log(DBHdata$DBH.year.6)
-
-log_model_01 <- glm(log_DBH.year.6 ~ (log_DBH.year.0 + Treatment + Large)^2, family='gaussian', data=DBHdata)
-
-# Step-wise selection (AIC)
-log_model_02 <- step(log_model_01, trace=F)
-summary(log_model_02)
-
-# Step-wise selection (BIC)
-k <- log(length(DBHdata$log_DBH.year.6))
-log_model_03 <- step(log_model_01, k=k, trace=F)
-summary(log_model_03)
-
-# H_0: No significant difference in the fit of models 2 and 3
-anova(log_model_02, log_model_03, test='Chi')
-# Reject H_0 ... the larger model (2) is useful
-```
-```{r}
-plot(log_model_02)
-# Check outliers, remove if possible
-print('Large residuals (Absolute value larger than 0.15)')
-log_model_02$residuals[log_model_02$residuals>0.15]
-```
 
