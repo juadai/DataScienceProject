@@ -212,3 +212,84 @@ summary(model2.1)
 
 
 
+
+# Lower bound of range
+abundance_matrix <- read.csv('../contingency tables/output/abundance/lf_abund_quadrats.csv')
+# Midpoint of range
+abundance_matrix <- read.csv('../contingency tables/output/midpoint/abundance_midpoint/lf_abund_quadrats.csv')
+
+
+
+
+n = length(abundance_matrix[,1])
+X0 <-rowSums(abundance_matrix[,abundance_matrix[1,] == 0])[3:n]
+X3 <-rowSums(abundance_matrix[,abundance_matrix[1,] == 3])[3:n]
+X6 <-rowSums(abundance_matrix[,abundance_matrix[1,] == 6])[3:n]
+
+abundance_totals <- abundance_matrix[,1:5]
+colnames(abundance_totals) <- abundance_totals[2,]
+abundance_totals <- cbind(abundance_totals[3:n,], X0, X3, X6)
+
+abundance_totals <- abundance_totals[abundance_totals$X0>0,]
+abundance_totals <- abundance_totals[abundance_totals$X3>0,]
+abundance_totals <- abundance_totals[abundance_totals$X6>0,]
+
+
+plot(abundance_totals$X0, ylab='Total Quadrat Abundance', main='Year 0 (Midpoint)')
+lines(c(-50,300), rep(100,2), col='red')
+plot(abundance_totals$X3, ylab='Total Quadrat Abundance', main='Year 3 (Midpoint)')
+lines(c(-50,300), rep(100,2), col='red')
+plot(abundance_totals$X6, ylab='Total Quadrat Abundance', main='Year 6 (Midpoint)')
+lines(c(-50,300), rep(100,2), col='red')
+
+tempdir()
+
+
+cols1 <- c('springgreen3', 'orchid4', 'firebrick3')
+cols2 <- c('mediumvioletred', 'midnightblue')
+
+abundance_totals$Col1 <- cols1[1]
+abundance_totals[abundance_totals$Treatment == 'Gap', 'Col1'] <- cols1[2]
+abundance_totals[abundance_totals$Treatment == 'Radial', 'Col1'] <- cols1[3]
+
+abundance_totals$Col2 <- cols2[1]
+abundance_totals[abundance_totals$Fenced == FALSE, 'Col2'] <- cols2[2]
+abundance_totals$Col3 <- cols2[1]
+abundance_totals[abundance_totals$Gap == FALSE, 'Col3'] <- cols2[2]
+
+
+
+line_plot <- function(df, label) {
+  n <- length(df$Treatment)
+  plot(0, type='l', xlim=c(0,6), ylim=c(-0.5,180),
+       xlab='Year', ylab="Total abundance (%)",
+       main=paste(label, 'Quadrats'), col='white')
+  for (i in 1:n) {
+    lines(c(df[i,]$X0, df[i,]$X3, df[i,]$X6) ~ c(0,3,6),
+          col=df[i,]$Col1)
+  }
+}
+
+# All quadrats
+line_plot(abundance_totals, 'All')
+# Control quadrats
+line_plot(abundance_totals[abundance_totals$Treatment=='Control',], 'Control')
+# Gap quadrats
+line_plot(abundance_totals[abundance_totals$Treatment=='Gap',], 'Gap')
+# Radial quadrats
+line_plot(abundance_totals[abundance_totals$Treatment=='Radial',], 'Radial')
+
+
+# In-Gap quadrats
+line_plot(abundance_totals[abundance_totals$Gap=='True',], 'In-Gap')
+# Not-In-Gap quadrats
+line_plot(abundance_totals[abundance_totals$Gap=='False',], 'Not In-Gap')
+
+# Fenced quadrats
+line_plot(abundance_totals[abundance_totals$Fenced=='True',], 'Fenced')
+# Unfenced quadrats
+line_plot(abundance_totals[abundance_totals$Fenced=='False',], 'Unfenced')
+
+
+
+
