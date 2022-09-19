@@ -11,7 +11,7 @@ def Shannons (vector):
     
     return(-sum(p))
 
-SCORES = {0.5: [0.5],
+SCORES = {0.5: [0.5,0.5],
           1: [1,5],
           2: [5,10],
           3: [10,20],
@@ -24,7 +24,7 @@ SCORES = {0.5: [0.5],
           10: [80,90]}
 
 for i in df.index:
-    df.loc[i, 'Abundance'] = min(SCORES[df.loc[i, 'Score']])
+    df.loc[i, 'Abundance'] = sum(SCORES[df.loc[i, 'Score']])/2
 
 
 df = df[['Plot_treatment',
@@ -105,4 +105,4 @@ for i in to_calculate:
     
 #matrix_species_divers['Change 0-6'] = matrix_species_divers[6] - matrix_species_divers[0]
 
-matrix_species_divers.to_csv('./output/spcies_divers_treatments.csv')
+matrix_species_divers.to_csv('./output/midpoint/diversity/species_divers_treatment.csv')

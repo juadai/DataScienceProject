@@ -15,7 +15,7 @@ SCORES = {0.5: [0.5,0.5],
           10: [80,90]}
 
 for i in df.index:
-    df.loc[i, 'Abundance'] = min(SCORES[df.loc[i, 'Score']])
+    df.loc[i, 'Abundance'] = sum(SCORES[df.loc[i, 'Score']])/2
 
 
 df = df[['Plot_treatment',
@@ -53,10 +53,10 @@ lf_abund = df.drop('Species Name', axis=1).groupby(
 ###########################
 
 # Aggregate life form abundance over quadrats?
-quads = False
+quads = True
 
 # Aggregate life form abundance over plots as well?
-plots = False
+plots = True
 
 
 if quads and not plots:
@@ -116,7 +116,7 @@ matrix_lf_abund.sort_index(inplace=True)
 matrix_lf_abund_rel = matrix_lf_abund.divide(matrix_lf_abund.sum(axis=1), axis=0)
 
 
-# matrix_lf_abund.to_csv('./output/lf_abund_shade_treatments.csv')
+matrix_lf_abund.to_csv('./output/midpoint/abundance shade tolerant/lf_abund_shade_treatments.csv')
 
 
 # Format for analysis
@@ -134,5 +134,5 @@ analysis_lf_abund_rel = analysis_lf_abund_rel.loc[~((analysis_lf_abund_rel[0] ==
 analysis_lf_abund = analysis_lf_abund.stack()
 analysis_lf_abund_rel = analysis_lf_abund_rel.stack()
 
-analysis_lf_abund.to_csv('./output/abundance/for analysis/lf_abund_shade_analysis.csv')
-analysis_lf_abund_rel.to_csv('./output/abundance/for analysis/lf_abund_rel_shade_analysis.csv')
+# analysis_lf_abund.to_csv('./output/midpoint/abundance shade tolerant/for analysis/lf_abund_shade_analysis.csv')
+# analysis_lf_abund_rel.to_csv('./output/midpoint/abundance shade tolerant/for analysis/lf_abund_rel_shade_analysis.csv')
