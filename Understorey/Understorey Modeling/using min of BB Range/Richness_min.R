@@ -1,3 +1,14 @@
+# CONTENTS
+
+# Setup
+# Richness Modeling: Year 0 to 3: P(Y3>Y0)
+# Richness Modeling: Year 3 to 6: P(Y6>Y3)
+# Richness Modeling: Year 0 to 6: P(Y6>Y0)
+# Richness Modeling: Year 3: Y3 ~ Pois
+# Richness Modeling: Year 6: Y6 ~ Pois
+# Explore and visualise
+
+
 #########
 # Setup #
 #########
@@ -45,9 +56,9 @@ confusion <- function(model, y, data, threshold) {
   return(list(Confusion=conf, Sensitivity=tp_rate, Specificity=tn_rate))
 }
 
-#######################################
-# Richness Modeling: Year 0 to Year 3 #
-#######################################
+#################################################
+# Richness Modeling: Year 0 to Year 3: P(Y3>Y0) #
+#################################################
 
 # Model the probability that richness increased between years 0 and 3
 richness_df$Y0.Y3.Increase <- richness_df$X3 > richness_df$X0
@@ -147,6 +158,11 @@ exp(-0.84195) # 0.43
 # Estimated 95% CI for these odds:
 c(exp(-0.84195-1.96*0.36442), exp(-0.84195+1.96*0.36442))
 # [0.21, 0.88]
+
+
+#################################################
+# Richness Modeling: Year 3 to Year 6: P(Y6>Y3) #
+#################################################
 
 
 # Estimated odds of a Gap Treatment quadrat increasing in richness,
@@ -261,9 +277,9 @@ plot.roc(r)
 
 
 
-##################################
-# Richness Modeling: Year 0 to 6 #
-##################################
+############################################
+# Richness Modeling: Year 0 to 6: P(Y6>Y0) #
+############################################
 
 # Model the probability that richness increased between years 3 and 6
 richness_df$Y0.Y6.Increase <- richness_df$X6 > richness_df$X0
@@ -376,6 +392,48 @@ r <- roc(richness_df$Y0.Y6.Increase, predict(richness_Y3_Y6_03, richness_df, typ
 auc(r)
 plot.roc(r)
 
+
+########################################
+# Richness Modeling: Year 3: Y3 ~ Pois #
+########################################
+
+str(richness_df)
+
+richness_Y3_01 <- glm(X3 ~ (X0 + Treatment + Gap + Fenced)^2, 
+                      family='poisson', data=richness_df)
+summary(richness_Y3_01)
+
+richness_Y3_02 <- step(richness_Y3_01)
+summary(richness_Y3_02)
+plot(richness_Y3_02)
+
+k = log(length(richness_df[,1]))
+richness_Y3_03 <- step(richness_Y3_01, k=k)
+summary(richness_Y3_03)
+
+anova(richness_Y3_03, richness_Y3_02, test='Chi')
+richness_Y3_02$call
+richness_Y3_03$call
+
+########################################
+# Richness Modeling: Year 6: Y6 ~ Pois #
+########################################
+
+richness_Y6_01 <- glm(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2, 
+                      family='poisson', data=richness_df)
+summary(richness_Y6_01)
+
+richness_Y6_02 <- step(richness_Y6_01)
+summary(richness_Y6_02)
+
+anova(richness_Y6_02, richness_Y6_01, test='Chi')
+
+k = log(length(richness_df[,1]))
+richness_Y6_03 <- step(richness_Y6_01, k=k)
+summary(richness_Y6_03)
+
+anova(richness_Y6_02, richness_Y6_03, test='Chi')
+# Model 2 wins
 
 
 #######################

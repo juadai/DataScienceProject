@@ -1,3 +1,14 @@
+# CONTENTS
+
+# Setup
+# Diversity Modeling: Year 0 to 3: P(Y3>Y0)
+# Diversity Modeling: Year 3 to 6: P(Y6>Y3)
+# Diversity Modeling: Year 0 to 6: P(Y6>Y0)
+# Diversity Modeling: Year 3: Y3 ~ N
+# Diversity Modeling: Year 6: Y6 ~ N
+# Explore and visualise
+
+
 #########
 # Setup #
 #########
@@ -47,9 +58,9 @@ confusion <- function(model, y, data, threshold) {
   return(list(Confusion=conf, Sensitivity=tp_rate, Specificity=tn_rate))
 }
 
-###################################
-# Diversity Modeling: Year 0 to 3 #
-###################################
+#############################################
+# Diversity Modeling: Year 0 to 3: P(Y3>Y0) #
+#############################################
 
 # Model the probability that diversity increased between years 0 and 3
 diversity_df$Y0.Y3.Increase <- diversity_df$X3 > diversity_df$X0
@@ -120,9 +131,10 @@ c$Specificity # True Negative Rate
 # This model wouldn't generalise, i.e. not really effective for prediction
 
 
-###################################
-# Diversity Modeling: Year 3 to 6 #
-###################################
+
+#############################################
+# Diversity Modeling: Year 3 to 6: P(Y6>Y3) #
+#############################################
 
 # Model the probability that diversity increased between years 3 and 6
 diversity_df$Y3.Y6.Increase <- diversity_df$X6 > diversity_df$X3
@@ -187,9 +199,9 @@ c$Specificity # True Negative Rate
 
 
 
-###################################
-# Diversity Modeling: Year 0 to 6 #
-###################################
+#############################################
+# Diversity Modeling: Year 0 to 6: P(Y6>Y0) #
+#############################################
 
 # Model the probability that diversity increased between years 0 and 6
 diversity_df$Y0.Y6.Increase <- diversity_df$X6 > diversity_df$X0
@@ -267,6 +279,56 @@ c$Sensitivity # True Positive Rate
 c$Specificity # True Negative Rate
 
 # ROC curve for Model 2 is a bit better than null model
+
+
+
+
+###########################################
+# Diversity Modeling: Year 3 to 6: Y3 ~ N #
+###########################################
+
+str(diversity_df)
+
+diversity_Y3_01 <- glm(X3 ~ (X0 + Treatment + Gap + Fenced)^2, 
+                       data=diversity_df)
+summary(diversity_Y3_01)
+diversity_Y3_02 <- step(diversity_Y3_01)
+summary(diversity_Y3_02)
+
+anova(diversity_Y3_02, diversity_Y3_01, test='Chi')
+plot(diversity_Y3_02)
+
+k = log(length(diversity_df[,1]))
+diversity_Y3_03 <- step(diversity_Y3_01, k=k)
+summary(diversity_Y3_03)
+
+anova(diversity_Y3_03, diversity_Y3_02, test='Chi')
+# Can't take the smaller model - treatment and its associated interactions are significant
+
+##################################
+# Diversity Modeling: Year 6 ~ N #
+##################################
+
+str(diversity_df)
+
+diversity_Y6_01 <- glm(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2, 
+                       data=diversity_df)
+summary(diversity_Y6_01)
+diversity_Y6_02 <- step(diversity_Y6_01)
+summary(diversity_Y6_02)
+
+anova(diversity_Y6_02, diversity_Y6_01, test='Chi')
+plot(diversity_Y6_02)
+
+k = log(length(diversity_df[,1]))
+diversity_Y6_03 <- step(diversity_Y6_01, k=k)
+summary(diversity_Y6_03)
+
+anova(diversity_Y6_03, diversity_Y6_02, test='Chi')
+# Can't take the smaller model
+plot(diversity_Y6_02)
+
+
 
 #######################
 # Explore & Visualise #
