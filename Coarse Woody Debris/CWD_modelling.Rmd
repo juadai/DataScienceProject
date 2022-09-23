@@ -6,7 +6,9 @@ date: "2022-08-18"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 setwd("~/Desktop/capstone/analysis/Juan/CWD")
-
+library(MASS)
+library(survival)
+library(fitdistrplus)
 
 CWDdata = read.csv("output.csv")
 CWDdata[is.na(CWDdata)] <- 0
@@ -14,12 +16,14 @@ CWDdata$difference = CWDdata$year.6 - CWDdata$year.0
 
 ```
 
+problems:
+currently, since the CWD is a discrete variable, so we first fit the data via some discrete model families also tried some continuous models as well in order to find better models. We build models with guassian, poissson, quasipoisson, negative binomial and gamma, but all the models display the same problems, they model assumptions are violated and no obvious better models from the diagnosis plots, had no idea on choosing the best models, might need some suggestions.
 
 ## visualisation 
 ```{r visualisation, echo = TRUE}
 hist(CWDdata$difference)
 plot(CWDdata$difference, col = factor(CWDdata$treatment))
-legend("topleft", legend = c("Gap", "COntrol", "Radial"), col=factor(CWDdata$treatment), pch=1)
+legend("topleft", legend = c("Gap", "Control", "Radial"), col=factor(CWDdata$treatment), pch=1)
 boxplot(CWDdata$difference~CWDdata$treatment, xlab="Treatment", ylab="CWD difference", main="CWD difference against different treatments")
 
 ```
@@ -59,7 +63,7 @@ The poisson model cannot be used directly, since the one of the difference in CW
 
 #visualisation and test if the data is poisson
 hist(CWDdatarm3$abs_diff)
-library(fitdistrplus)
+
 new_abs_diff <- ceiling(CWDdatarm3$abs_diff) # scale it to fit the poisson model
 poisson.model1=fitdist(new_abs_diff , "pois")
 poisson.model1

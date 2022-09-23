@@ -1,0 +1,68 @@
+---
+title: "Browsing_relative_abundance_modelling"
+author: "Chayanit Jaroonsophonsak"
+date: '2022-09-14'
+output: word_document
+---
+
+# Import and clean data
+```{r}
+library(rstudioapi)
+
+setwd(dirname(getActiveDocumentContext()$path))
+rel_abun_df = read.csv("../dataset/tables/lf_abund_rel_analysis.csv")
+
+# Extract data with relevant plots 
+relevant_plots = c(7,9,10,12)
+rel_abun_df = rel_abun_df[rel_abun_df$Plot.Number %in% relevant_plots,]
+rel_abun_df
+
+# Convert some variables into different data types 
+str(rel_abun_df)
+
+rel_abun_df$Plot.Number = factor(rel_abun_df$Plot.Number)
+rel_abun_df$Quadrat.Number = factor(rel_abun_df$Quadrat.Number)
+
+rel_abun_df$Gap <- rel_abun_df$Gap=='True'
+rel_abun_df$Fenced <- rel_abun_df$Fenced=='True'
+
+# Remove null rows
+rel_abun_df <- na.omit(rel_abun_df)
+
+# calculate the changes
+a = matrix(rel_abun_df$X0, nrow = 902, ncol=3)
+rel_abun_change_df = rel_abun_df[rel_abun_df$Year==0,1:6]
+rel_abun_change_df$X0 = a[,1]
+rel_abun_change_df$X3 = a[,2]
+rel_abun_change_df$X6 = a[,3] 
+rel_abun_change_df$Y0.Y3.change = round(abs(rel_abun_change_df$X3 - rel_abun_change_df$X0)*100,digits=0) 
+rel_abun_change_df$Y3.Y6.change = round(abs(rel_abun_change_df$X6 - rel_abun_change_df$X3)*100,digits=0) 
+rel_abun_change_df$Y0.Y6.change = round(abs(rel_abun_change_df$X6 - rel_abun_change_df$X0)*100,digits=0) 
+```
+# Modelling
+```{r}
+# Model 1 : Log-linear model with all main & interaction effects
+b_abun_Y0_Y3_01 = glm(Y0.Y3.change ~ (Treatment + Fenced + Gap + Life.Form)^2 , data = rel_abun_change_df, family = poisson)
+summary(b_abun_Y0_Y3_01)
+
+# Model 2 : Step-wise selection from Model 1 (AIC)
+b_abun_Y0_Y3_02 = step(b_abun_Y0_Y3_01)
+summary(b_abun_Y0_Y3_02)
+
+# Model 3 : Model 1 - Gap:Life forms
+b_abun_Y0_Y3_03 = glm(Y0.Y3.change ~ (Treatment + Fenced + Life.Form)^2 + Gap , data = rel_abun_change_df, family = poisson)
+summary(b_abun_Y0_Y3_03)
+
+anova(b_abun_Y0_Y3_03,b_abun_Y0_Y3_01)
+pchisq(183.59,15)
+# Model 3 is better
+
+# Model 4 : Model 3 - Fenced : Life forms
+b_abun_Y0_Y3_04 = glm(Y0.Y3.change ~ (Treatment + Fenced + Life.Form)^2 + Gap - Fenced:Life.Form, data = rel_abun_change_df, family = poisson)
+summary(b_abun_Y0_Y3_04)
+
+anova(b_abun_Y0_Y3_04,b_abun_Y0_Y3_03)
+pchisq(131.09, 14)
+
+# Model 5 : 
+```

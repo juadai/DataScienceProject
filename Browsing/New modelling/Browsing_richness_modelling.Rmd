@@ -1,0 +1,239 @@
+---
+title: "Browsing_richness_modelling"
+author: "Chayanit Jaroonsophonsak"
+output: word_document
+---
+
+# Import and clean data
+```{r}
+library(glmtoolbox)
+library(rstudioapi)
+library(pROC)
+
+setwd(dirname(getActiveDocumentContext()$path))
+rich_df = read.csv("../dataset/tables/species_richness_quadrats.csv")
+
+# Extract data with relevant plots 
+relevant_plots = c(7,9,10,12)
+rich_df = rich_df[rich_df$Plot.Number %in% relevant_plots,]
+rich_df
+
+# Convert some variables into different data types 
+str(rich_df)
+
+rich_df$Plot.Number = factor(rich_df$Plot.Number)
+rich_df$Quadrat.Number = factor(rich_df$Quadrat.Number)
+
+rich_df$Gap <- rich_df$Gap=='True'
+rich_df$Fenced <- rich_df$Fenced=='True'
+
+# Remove null rows
+rich_df <- na.omit(rich_df)
+```
+
+# Generate new variables, indicating whether or not species richness has increased in each quadrat at different periods (1 = increased, 0 = did not increase) 
+```{r}
+rich_df$Y0.Y3.Increase <- rich_df$X3 > rich_df$X0
+rich_df$Y0.Y3.Increase <- as.numeric(rich_df$Y0.Y3.Increase)
+
+rich_df$Y3.Y6.Increase <- rich_df$X6 > rich_df$X3
+rich_df$Y3.Y6.Increase <- as.numeric(rich_df$Y3.Y6.Increase)
+
+rich_df$Y0.Y6.Increase <- rich_df$X6 > rich_df$X0
+rich_df$Y0.Y6.Increase <- as.numeric(rich_df$Y0.Y6.Increase)
+```
+
+# A function to generate confusion matrix and diagnose binomial response
+```{r}
+confusion <- function(model, y, data, threshold) {
+  
+  y_hat <- predict(model, data, type='response') > threshold
+  conf <- matrix(0, nrow=2, ncol=2)
+  rownames(conf) <- c('Predict 1', 'Predict 0')
+  colnames(conf) <- c('Observe 1', 'Observe 0')
+  
+  conf[1,1] <- sum(y==1 & y_hat==1)
+  conf[1,2] <- sum(y==0 & y_hat==1)
+  conf[2,1] <- sum(y==1 & y_hat==0)
+  conf[2,2] <- sum(y==0 & y_hat==0)
+  
+  tp_rate <- conf[1,1] / sum(conf[1,]) # Sensitivity
+  tn_rate <- conf[2,2] / sum(conf[2,]) # Specificity
+  
+  return(list(Confusion=conf, Sensitivity=tp_rate, Specificity=tn_rate))
+}
+```
+
+# #######################################################################################
+# Hypothesis 1: Removal of browsing will cause a greater increase
+# in understorey species richness in gap treatment (T1) compared to radial treatment (T2)
+# ---------------------------------------------------------------------------------------
+# Hypothesis 2: 
+# #######################################################################################
+
+# ##### Year 0 to year 3 #####
+# Visualisation
+
+# Modelling
+```{r}
+# Model 1: predictors with all main & interaction effects 
+b_rich_Y0_Y3_01 = glm(Y0.Y3.Increase ~ (Treatment + Gap + Fenced)^2, family='binomial', data=rich_df)
+summary(b_rich_Y0_Y3_01)
+
+
+# Model 2: Step-wise selection from Model 1 (AIC) 
+b_rich_Y0_Y3_02 = step(b_rich_Y0_Y3_01, k=2)
+summary(b_rich_Y0_Y3_02)
+# TreatmentRadial:FencedTRUE is not significant at 5% significance level
+
+
+#compare model 2 and 1
+anova(b_rich_Y0_Y3_02, b_rich_Y0_Y3_01)
+pchisq(0.27015,2)
+# there's no significant evidence that model 1 is better than model 2 
+
+
+# Model 3: only include main effects 
+b_rich_Y0_Y3_03 = glm(Y0.Y3.Increase ~ Treatment + Gap + Fenced, family='binomial', data=rich_df)
+summary(b_rich_Y0_Y3_03)
+
+
+# Model 4: Step-wise selection from Model 3 (AIC)  
+step(b_rich_Y0_Y3_03)
+# does not give new model
+
+
+# compare model 3 and 2 
+anova(b_rich_Y0_Y3_03, b_rich_Y0_Y3_02)
+pchisq(3.5637, 1)
+# there's no significant evidence that model 2 is better than model 3
+# However, model 2 has lower AIC than model 3 
+
+
+# Model 2 Goodness of fit 
+r <- roc(rich_df$Y0.Y3.Increase, predict(b_rich_Y0_Y3_02, rich_df, type = 'response'))
+auc(r)
+plot.roc(r)
+
+c <- confusion(b_rich_Y0_Y3_02, rich_df$Y0.Y3.Increase, rich_df, 0.5)
+c$Confusion
+c$Sensitivity # True Positive Rate
+c$Specificity
+
+# Model 3 Goodness of fit 
+r <- roc(rich_df$Y0.Y3.Increase, predict(b_rich_Y0_Y3_03, rich_df, type = 'response'))
+auc(r)
+plot.roc(r)
+
+c <- confusion(b_rich_Y0_Y3_03, rich_df$Y0.Y3.Increase, rich_df, 0.5)
+c$Confusion
+c$Sensitivity # True Positive Rate
+c$Specificity
+
+# Model 2 seems to have better goodness of fit 
+# Choose model 2 
+```
+# Interpretation
+- The estimated odds ratio of increase in species richness from Year 0 to Year 3 decreases by 39.37% for those quadrats with Radial treatment compared to those with Gap treatment.
+- Cannot reject H1 
+```{r}
+exp(-1.9845+1.4842)
+1-exp(-1.9845+1.4842)
+```
+
+# Try limiting the dataset to just 'fenced' quadrats
+# Only focus on fenced quadrats
+```{r}
+rich_h1_df = rich_df[rich_df$Fenced == 'TRUE',]
+```
+
+```{r}
+# Model 1: Treatment + Gap + Treatment:Gap  
+b_rich_Y0_Y3_try_01 = glm(Y0.Y3.Increase ~ (Treatment + Gap)^2, family='binomial', data=rich_h1_df)
+summary(b_rich_Y0_Y3_try_01)
+# None of predictors appears significant
+
+# Model 2: Step-wise selection from Model 1 (AIC) 
+b_rich_Y0_Y3_try_02 = step(b_rich_Y0_Y3_try_01)
+summary(b_rich_Y0_Y3_try_02)
+# model with only 1 predictor: Gap (insignificant)
+# Treatment has an insignificant effect on the response at 5% significance level 
+
+# Model 3: Treatment as the only predictor
+b_rich_Y0_Y3_try_03 = glm(Y0.Y3.Increase ~ Treatment, family='binomial', data=rich_h1_df)
+summary(b_rich_Y0_Y3_try_03)
+# Treatment has an insignificant effect on the response at 5% significance level
+# higher AIC than model 2
+
+# compare model 2 with model 1
+anova(b_rich_Y0_Y3_try_02,b_rich_Y0_Y3_try_01)
+pchisq(1.0711, 2)
+# p-value >> 0.05
+# insufficient evidence to suggest that model 1 is better
+
+# cannot incorporate polynomial terms because both predictors are factors with values 0 & 1
+
+# Model 2: Goodness of fit test 
+c <- confusion(b_rich_Y0_Y3_try_02, rich_h1_df$Y0.Y3.Increase, rich_h1_df, 0.5)
+
+c$Confusion
+c$Sensitivity # True Positive Rate
+c$Specificity # True Negative Rate
+
+r <- roc(rich_h1_df$Y0.Y3.Increase, predict(b_rich_Y0_Y3_try_02, rich_h1_df, type = 'response'))
+auc(r)
+plot.roc(r)
+# Not so good 
+
+# Model 2 is best here, but it doesn't seem to be good enough 
+# There's insufficient evidence to suggest that removal of browsing has caused a greater increase in understorey species richness in T1 compared to T2 from Year 0 to Year 3  
+```
+
+# try modelling using Poisson GLM & linear model
+```{r}
+hist(rich_df$X3)
+
+library(fitdistrplus)
+descdist(rich_df$X3)
+
+fitdis1 = fitdist(rich_df$X3, "norm")
+fitdis2 = fitdist(rich_df$X3, "pois")
+summary(fitdis1); summary(fitdis2)
+poisson.lambda = 13.98425	 
+plot(fitdis1)
+plot(fitdis2)
+
+n=length(rich_df$X3)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(rich_df$X3), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+b_rich_pois_Y0_Y3_01 = glm(X3 ~ X0 + (Treatment + Gap + Fenced)^2, data = rich_df, family = 'poisson')
+summary(b_rich_pois_Y0_Y3_01)
+
+b_rich_pois_Y0_Y3_02=step(b_rich_pois_Y0_Y3_01)
+summary(b_rich_pois_Y0_Y3_02)
+
+anova(b_rich_pois_Y0_Y3_02,b_rich_pois_Y0_Y3_01)
+pchisq(3.0705,4)
+plot(b_rich_pois_Y0_Y3_02)
+
+b_rich_pois_Y0_Y3_03 = glm(X3 ~ X0 + Treatment * Fenced + Gap, data = rich_df, family = 'poisson')
+summary(b_rich_pois_Y0_Y3_03)
+
+anova(b_rich_pois_Y0_Y3_02,b_rich_pois_Y0_Y3_03)
+pchisq(1.9724,2)
+
+b_rich_pois_Y0_Y3_04 = glm(X3 ~ X0 + (Treatment + Gap + Fenced)^2, data = rich_df, family = 'gaussian')
+summary(b_rich_pois_Y0_Y3_04)
+plot(b_rich_pois_Y0_Y3_04)
+
+b_rich_pois_Y0_Y3_05 = step(b_rich_pois_Y0_Y3_04)
+summary(b_rich_pois_Y0_Y3_05)
+plot(b_rich_pois_Y0_Y3_05)
+# same predictors as model2, but model 2 yields lower AIC
+
+b_rich_pois_Y0_Y3_06 = glm(X3 ~ X0 + Treatment + Gap, data = rich_df, family = 'gaussian')
+summary(b_rich_pois_Y0_Y3_06)
+plot(b_rich_pois_Y0_Y3_06)
+```
