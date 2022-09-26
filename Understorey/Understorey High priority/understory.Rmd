@@ -11,6 +11,7 @@ library(readxl)
 library(tidyr)
 library(dplyr)
 library(lme4)
+library(ggplot2)
 ```
 
 ## Prep
@@ -18,14 +19,42 @@ library(lme4)
 diversity_df <- read.csv('../dataset/tables/species_divers_quadrats.csv')
 diversity_df_plot <- read.csv('../contingency tables/output/diversity/species_divers_plots.csv')
 diversity_df_treat <- read.csv('../contingency tables/output/diversity/species_divers_treatments.csv')
+
+diversity_df <- diversity_df %>% drop_na(X0, X3, X6)
+
+div_fenced_both_df <- diversity_df %>% group_by(Plot.Number) %>% filter_at(vars(Fenced), any_vars(. %in% c("True")))
+div_plot_fenced_both <- unique(div_fenced_both_df$Plot.Number)
+div_fenced_both_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(. %in% div_plot_fenced_both))
+div_fenced_only_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(!. %in% div_plot_fenced_both))
 ```
+
+## Exploration
+```{r}
+df_copy <- diversity_df
+div_fenced_only_df <- div_fenced_only_df %>% pivot_longer(c(6:8), names_to="Year", values_to="val")
+p <- ggplot(data=div_fenced_only_df, aes(x=Year, y=val, color=Gap, group=Quadrat.Number)) +
+      geom_line() 
+p + facet_wrap(~Plot.Number)
+```
+
+```{r}
+div_fenced_both_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(. %in% div_plot_fenced_both))
+div_fenced_both_df <- div_fenced_both_df %>% pivot_longer(c(6:8), names_to="Year", values_to="val")
+
+panel_names <- as_labeller(c(`7`="Plot 7 Radial", `9`="Plot 9 Radial", `10`="Plot 10 Gap", `12`="Plot 12 Gap"))
+p <- ggplot(data=div_fenced_both_df, aes(x=Year, y=val, color=Fenced, shape=Gap, group=Quadrat.Number)) +
+      geom_line() + geom_point() +
+      facet_wrap(~Plot.Number, labeller = panel_names)
+p
+```
+
 
 ## Hypothesis 1
 #### There will be a greater increase in understorey species diversity in T1 as compared to T2, and in T2 compared to Control plots (diversity is a measure of both abundance and richness)              
 
 ### Year 0 vs Year 6
 ```{r}
-diversity_df %>% drop_na(X0, X6) 
+
 diversity_df$Increase_0to6 <- diversity_df$X6 > diversity_df$X0
 diversity_df$Increase_0to6 <- as.numeric(diversity_df$Increase_0to6)
 
@@ -55,4 +84,10 @@ Model 3 - Mixed effect
 hyp1_div_mod3 <- lmer(Increase_0to6 ~ 1 + Treatment + Fenced + Gap + (1|Treatment) + (1|Fenced) + (1|Gap),
                           data=diversity_df)
 summary(hyp1_div_mod3)
+```
+
+## Hypothesis 2
+#### There will be a greater change in the relative abundances of species in the understorey community in T1 as compared to T2
+```{r}
+
 ```
