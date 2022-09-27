@@ -1,0 +1,81 @@
+# Load data
+library(rstudioapi)
+library(pROC)
+library(lme4)
+
+setwd(dirname(getActiveDocumentContext()$path))
+richness_df <- read.csv('../dataset/tables/species_richness_quadrats.csv')
+richness_df_plot <- read.csv('../contingency tables/output/richness/species_richness_plots.csv')
+
+# Treatments, Plot numbers, Quadrat numbers, Life forms as factors
+richness_df$Treatment <- factor(richness_df$Treatment)
+richness_df$Plot.Number <- factor(richness_df$Plot.Number)
+richness_df$Quadrat.Number <- factor(richness_df$Quadrat.Number)
+
+# Convert Fenced, Gap columns to boolean
+richness_df$Gap <- richness_df$Gap=='True'
+richness_df$Fenced <- richness_df$Fenced=='True'
+
+richness_df_plot$Gap <- richness_df_plot$Gap=='True'
+richness_df_plot$Fenced <- richness_df_plot$Fenced=='True'
+
+# Remove null rows
+richness_df <- na.omit(richness_df)
+richness_df_plot <- na.omit(richness_df_plot)
+
+########################################
+# Richness Modeling: Year 3: Y3 ~ Pois #
+########################################
+
+str(richness_df)
+
+richness_Y3_01 <- glm(X3 ~ (X0 + Treatment + Gap + Fenced)^2, 
+                      family='poisson', data=richness_df)
+summary(richness_Y3_01)
+
+richness_Y3_02 <- step(richness_Y3_01)
+summary(richness_Y3_02)
+plot(richness_Y3_02)
+
+k = log(length(richness_df[,1]))
+richness_Y3_03 <- step(richness_Y3_01, k=k)
+summary(richness_Y3_03)
+
+anova(richness_Y3_03, richness_Y3_02, test='Chi')
+richness_Y3_02$call
+richness_Y3_03$call
+# Keep the larger model 2
+summary(richness_Y3_02)
+
+pchisq(263.32, 260, lower=F) # Pass
+
+
+########################################
+# Richness Modeling: Year 6: Y6 ~ Pois #
+########################################
+
+richness_Y6_01 <- glm(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2, 
+                      family='poisson', data=richness_df)
+summary(richness_Y6_01)
+
+richness_Y6_02 <- step(richness_Y6_01)
+summary(richness_Y6_02)
+
+anova(richness_Y6_02, richness_Y6_01, test='Chi')
+
+k = log(length(richness_df[,1]))
+richness_Y6_03 <- step(richness_Y6_01, k=k)
+summary(richness_Y6_03)
+
+anova(richness_Y6_02, richness_Y6_03, test='Chi')
+# Keep the larger model 2
+summary(richness_Y6_02)
+
+pchisq(313.82, 225, lower=F) # Fail
+
+
+
+
+
+
+
