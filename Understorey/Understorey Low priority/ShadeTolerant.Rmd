@@ -1,0 +1,370 @@
+---
+title: "ShadeTolerant"
+author: "Juan Dai"
+date: "2022-09-20"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Desktop/capstone/analysis/Juan/Understorey_priority2&low")
+library(MASS)
+library(survival)
+library(fitdistrplus)
+library(reshape2)
+library(dplyr)
+library(plyr) 
+```
+
+
+```{r data_loading, echo=TRUE}
+# Load data
+abundance_shade_df <- read.csv('./contingency tables/output/abundance shade tolerant/for analysis/lf_abund_shade_analysis.csv')
+abundance_rel_shade_df <- read.csv('./contingency tables/output/abundance shade tolerant/for analysis/lf_abund_rel_shade_analysis.csv')
+
+
+
+# Treatments, Plot numbers, Quadrat numbers, Life forms as factors
+abundance_shade_df$Treatment <- factor(abundance_shade_df$Treatment)
+abundance_shade_df$Plot.Number <- factor(abundance_shade_df$Plot.Number)
+abundance_shade_df$Quadrat.Number <- factor(abundance_shade_df$Quadrat.Number)
+abundance_shade_df$Life.Form <- factor(abundance_shade_df$Life.Form)
+
+abundance_rel_shade_df$Treatment <- factor(abundance_rel_shade_df$Treatment)
+abundance_rel_shade_df$Plot.Number <- factor(abundance_rel_shade_df$Plot.Number)
+abundance_rel_shade_df$Quadrat.Number <- factor(abundance_rel_shade_df$Quadrat.Number)
+abundance_rel_shade_df$Life.Form <- factor(abundance_rel_shade_df$Life.Form)
+
+
+# Convert Fenced, Gap columns to boolean
+abundance_shade_df$Gap <- abundance_shade_df$Gap=='True'
+abundance_shade_df$Fenced <- abundance_shade_df$Fenced=='True'
+abundance_shade_df$Shade.Tolerant <- abundance_shade_df$Shade.Tolerant=='True'
+
+abundance_rel_shade_df$Gap <- abundance_rel_shade_df$Gap=='True'
+abundance_rel_shade_df$Fenced <- abundance_rel_shade_df$Fenced=='True'
+abundance_rel_shade_df$Shade.Tolerant <- abundance_rel_shade_df$Shade.Tolerant=='True'
+
+# Relative Abundance: convert from proportion to percentage, and round to integer
+# Note: Trace observations (below 1%) rounded up to 1%
+abundance_rel_shade_df$response <- abundance_rel_shade_df$X0*100
+abundance_rel_shade_df[abundance_rel_shade_df$response < 1 & abundance_rel_shade_df$response != 0, 'response'] <- 1
+abundance_rel_shade_df$response <- round(abundance_rel_shade_df$response)
+
+rel_abundance_shade_wide <- dcast(abundance_rel_shade_df, Treatment+ Plot.Number + Quadrat.Number + Fenced + Gap + Shade.Tolerant + Life.Form ~ Year, value.var="response",fun.aggregate = sum)
+rel_abundance_shade_wide
+
+# Rename 
+names(rel_abundance_shade_wide)[names(rel_abundance_shade_wide)=="0"] <- "X0"
+names(rel_abundance_shade_wide)[names(rel_abundance_shade_wide)=="3"] <- "X3"
+names(rel_abundance_shade_wide)[names(rel_abundance_shade_wide)=="6"] <- "X6"
+
+abundance_shade_wide_df <- dcast(abundance_shade_df, Treatment+ Plot.Number + Quadrat.Number + Fenced + Gap + Shade.Tolerant + Life.Form ~ Year, value.var="X0")
+abundance_shade_wide_df
+
+# Rename 
+names(abundance_shade_wide_df)[names(abundance_shade_wide_df)=="0"] <- "X0"
+names(abundance_shade_wide_df)[names(abundance_shade_wide_df)=="3"] <- "X3"
+names(abundance_shade_wide_df)[names(abundance_shade_wide_df)=="6"] <- "X6"
+
+
+# Include shade and Not shade tolerant
+abundance_shade_df1 <- ddply(abundance_shade_wide_df,.(Plot.Number, Quadrat.Number),transform,sum = sum(X0))
+names(abundance_shade_df1)[names(abundance_shade_df1)=="sum"] <- "Total_X0"
+
+abundance_shade_df1$Total_X3 <- ddply(abundance_shade_wide_df,.(Plot.Number, Quadrat.Number),transform,sum = sum(X3))$sum
+
+
+abundance_shade_df1$Total_X6 <- ddply(abundance_shade_wide_df,.(Plot.Number, Quadrat.Number),transform,sum = sum(X6))$sum
+
+
+abundance_shade_df1$sum <- ddply(abundance_shade_df1,.(Plot.Number, Quadrat.Number),transform,sum=length(Life.Form))$sum
+
+# 
+only_shade_df <- abundance_shade_wide_df[abundance_shade_wide_df$Shade.Tolerant == TRUE,]
+
+abundance_only_shade_df1 <- ddply(only_shade_df,.(Plot.Number, Quadrat.Number),transform,sum = sum(X0))
+names(abundance_only_shade_df1)[names(abundance_only_shade_df1)=="sum"] <- "Total_X0"
+
+abundance_only_shade_df1$Total_X3 <- ddply(only_shade_df,.(Plot.Number, Quadrat.Number),transform,sum = sum(X3))$sum
+
+
+abundance_only_shade_df1$Total_X6 <- ddply(only_shade_df,.(Plot.Number, Quadrat.Number),transform,sum = sum(X6))$sum
+
+
+abundance_only_shade_df1$sum <- ddply(abundance_only_shade_df1,.(Plot.Number, Quadrat.Number),transform,sum=length(Life.Form))$sum
+```
+
+
+## diffrent modeling via prediction
+```{r model_prediction_gaussian, echo=TRUE}
+Y0.Y3.guass.model2 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = rel_abundance_shade_wide)
+summary(Y0.Y3.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model2)
+
+
+Y0.Y3.gamma.model3 = glm(X3+1  ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma(link = "log"), data = rel_abundance_shade_wide)
+summary(Y0.Y3.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.gamma.model3)
+
+Y0.Y3.poisson.model3 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = rel_abundance_shade_wide)
+summary(Y0.Y3.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model3)
+```
+
+```{r model_selection_prediction_gaussian, echo=TRUE}
+Y0.Y3.select_guass.model2 <- step(Y0.Y3.guass.model2, scope=~.)
+summary(Y0.Y3.select_guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.select_guass.model2)
+
+Y0.Y3.select_gamma.model3 <- step(Y0.Y3.gamma.model3, scope=~.)
+summary(Y0.Y3.select_gamma.model3)
+
+Y0.Y3.select_poisson.model3 <- step(Y0.Y3.poisson.model3, scope=~.)
+summary(Y0.Y3.select_poisson.model3)
+# according to the AIC, we will choose the gamma model, since it has the lowest AIC of 12219,
+#gap, fence, X0 are all significant, although treatment is not significant in this case, but it is useful in predicting the X3, also both of them has a negative effect on the relative abundance for yr3
+```
+
+#Yr 0 to Yr3
+```{r model_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.guass.model2 = glm(log(X3+1) ~ log((X0+1)/offset(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Quadrat.Number + Fenced + Life.Form+Shade.Tolerant, family = gaussian, data = abundance_shade_df1)
+summary(Y0.Y3.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model2)
+
+
+Y0.Y3.guass.model3 = glm(log(X3+1) ~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Quadrat.Number + Fenced + Life.Form +Shade.Tolerant, family = gaussian, data = abundance_shade_df1)
+summary(Y0.Y3.guass.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.guass.model3)
+# first gaussian model fits better
+
+
+Y0.Y3.gamma.model3 = glm(log(X3+2) ~ log(X0+2)-offset(log(Total_X0+2*sum)) + offset(log(Total_X3+2*sum))+ Treatment  + Gap + Quadrat.Number + Fenced + Life.Form+Shade.Tolerant, family = Gamma(link = "log"), data = abundance_shade_df1)
+summary(Y0.Y3.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.gamma.model3)
+
+```
+
+Do not run!!!!!!
+```{r model_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.poisson.model3 = glm(log(X3+1)~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = abundance_shade_df1)
+summary(Y0.Y3.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model3)
+
+Y0.Y3.poisson.model4 = glm(X3~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3))+ Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = abundance_shade_df1)
+summary(Y0.Y3.poisson.model4)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model4)
+```
+
+```{r model_selection_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.select_guass.model2 <- step(Y0.Y3.guass.model2, scope=~.)
+summary(Y0.Y3.select_guass.model2)
+# AIC:781.03 to 6778.6
+
+
+Y0.Y3.select_gamma.model3 <- step(Y0.Y3.gamma.model3, scope=~.)
+summary(Y0.Y3.select_gamma.model3)
+# AIC: 7849.75 to 7849.7
+
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 6778.6,
+#gap, X0, Lifeform, and shade tolerant are all significant, also both of them has a positive effect on the relative abundance for yr3
+```
+
+Do not run!!!!!!
+```{r model_selection_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.select_poisson.model3 <- step(Y0.Y3.poisson.model3, scope=~.)
+summary(Y0.Y3.select_poisson.model3)
+# AIC: inf to inf
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 4729,
+#gap, X0 are all significant, also both of them has a positive effect on the relative abundance for yr3
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Yr 0 to Yr3
+```{r model_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.guass.model2 = glm(log(X3+1) ~ log((X0+1)/offset(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Quadrat.Number + Fenced + Life.Form, family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y3.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model2)
+
+
+Y0.Y3.guass.model3 = glm(log(X3+1) ~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Quadrat.Number + Fenced + Life.Form, family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y3.guass.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.guass.model3)
+# first gaussian model fits better
+
+
+Y0.Y3.gamma.model3 = glm(log(X3+2) ~ log(X0+2)-offset(log(Total_X0+2*sum)) + offset(log(Total_X3+2*sum))+ Treatment  + Gap + Quadrat.Number + Fenced + Life.Form, family = Gamma(link = "log"), data = abundance_only_shade_df1)
+summary(Y0.Y3.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.gamma.model3)
+
+```
+
+
+
+```{r model_selection_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.select_guass.model2 <- step(Y0.Y3.guass.model2, scope=~.)
+summary(Y0.Y3.select_guass.model2)
+# AIC:3348.61 to 3340.4
+
+
+Y0.Y3.select_gamma.model3 <- step(Y0.Y3.gamma.model3, scope=~.)
+summary(Y0.Y3.select_gamma.model3)
+# AIC: 4601.28 to 4601.3
+
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 3340.4,
+#gap, X0, Lifeform are all significant, also both of them has a positive effect on the relative abundance for yr3
+```
+
+
+```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
+Y0.Y3.glmer.guass1= glmer(log(X3+1) ~ log((X0+1)/offset(Total_X0+sum)) + Treatment  + Gap + Life.Form + Fenced + offset(log(Total_X3+sum))+ (1|Plot.Number), family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y3.glmer.guass1)
+print(Y0.Y3.glmer.guass1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y0.Y3.glmer.guass1)
+plot(Y0.Y3.glmer.guass1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=abundance_only_shade_df1$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+
+par(mfrow=c(3,4))
+for(i in 1:length(unique(abundance_only_shade_df1$Plot.Number))){
+plot(resid(Y0.Y3.glmer.guass1,type="pearson")[abundance_only_shade_df1$Plot.Number==i]~predict(Y0.Y3.glmer.guass1)[abundance_only_shade_df1$Plot.Number==i],pch=16,ylim=c(-4,4),main=paste("Plot",i),xlab="Fitted values",ylab="Standardised residuals")
+lines(x=c(-1000,1000),y=c(0,0))
+}
+par(mfrow=c(1,1))
+qqnorm(resid(Y0.Y3.glmer.guass1),pch=16,col=abundance_only_shade_df1$Plot.Number)
+qqline(resid(Y0.Y3.glmer.guass1))
+
+
+anova(Y0.Y3.glmer.guass1, Y0.Y3.select_guass.model2)
+
+
+Y0.Y3.glmer.guass2= glmer(log(X3+1) ~ log((X0+1)/offset(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment + Gap + Life.Form + Fenced + (1|Plot.Number) +(log(X0 + 1)|Plot.Number) , family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y3.glmer.guass2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.glmer.guass2)
+anova(Y0.Y3.glmer.guass1, Y0.Y3.glmer.guass2)
+
+Y0.Y3.glmer.guass3= glmer(log(X3+1) ~ log((X0+1)/offset(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number) + (log(X0 + 1)|Plot.Number) + (1|Quadrat.Number), family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y3.glmer.guass3)
+print(Y0.Y3.glmer.guass3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y0.Y3.glmer.guass3)
+anova(Y0.Y3.glmer.guass3, Y0.Y3.glmer.guass2)
+
+
+# according to the Chi-sq value, we will select the random effect (1|plot), (1|quadrat), (log(X0+1)|plot)
+```
+
+
+
+
+
+##Yr0 to Yr6
+```{r model_prediction_gaussian_log_Y036, echo=TRUE}
+Y0.Y6.guass.model3 = glm(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) + log((X3+1)/offset(Total_X3+sum)) +  offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y6.guass.model3)
+par(mfrow = c(2,2))
+plot(Y0.Y6.guass.model3)
+
+
+Y0.Y6.gamma.model4 = glm(log(X6+2) ~ log(X0+2)-offset(log(Total_X0+2*sum)) + log(X3+2)-offset(log(Total_X3+2*sum)) +  offset(log(Total_X6+2*sum))+ Treatment  + Gap + Life.Form + Fenced, family = Gamma(link = "log"), data = abundance_only_shade_df1)
+summary(Y0.Y6.gamma.model4)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.gamma.model4)
+
+```
+
+
+```{r model_selection_prediction_gaussian_Y036, echo=TRUE}
+Y0.Y6.select_guass.model3 <- step(Y0.Y6.guass.model3, scope=~.)
+summary(Y0.Y6.select_guass.model3)
+#AIC: 4477.04 - 4475.2
+
+Y0.Y6.select_gamma.model4 <- step(Y0.Y6.gamma.model4, scope=~.)
+summary(Y0.Y6.select_gamma.model4)
+#AIC: 7353.3 - 7351.7
+
+
+# according to the AIC, we will choose the latter gaussian model, that is the one also included the X3 data, since it has the lowest AIC of 4475.2,
+#gap, fenced, X0, X3 and lifeform are all significant, both of them has a positive effect on the relative abundance for yr6
+```
+
+
+**according to the AIC, we will choose the gaussian prediction model with X3 data included. it has the lowest AIC of 4475.2**
+
+
+```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
+Y0.Y6.glmer.guass1= glmer(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) +log((X3+1)/offset(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + offset(log(Total_X6+sum))+ (1|Plot.Number), family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y6.glmer.guass1)
+print(Y0.Y6.glmer.guass1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y0.Y6.glmer.guass1)
+plot(Y0.Y6.glmer.guass1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=abundance_only_shade_df1$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+
+par(mfrow=c(3,4))
+for(i in 1:length(unique(abundance_only_shade_df1$Plot.Number))){
+plot(resid(Y0.Y3.glmer.guass1,type="pearson")[abundance_only_shade_df1$Plot.Number==i]~predict(Y0.Y3.glmer.guass1)[abundance_only_shade_df1$Plot.Number==i],pch=16,ylim=c(-4,4),main=paste("Plot",i),xlab="Fitted values",ylab="Standardised residuals")
+lines(x=c(-1000,1000),y=c(0,0))
+}
+par(mfrow=c(1,1))
+qqnorm(resid(Y0.Y6.glmer.guass1),pch=16,col=abundance_only_shade_df1$Plot.Number)
+qqline(resid(Y0.Y6.glmer.guass1))
+
+
+anova(Y0.Y6.glmer.guass1, Y0.Y6.select_guass.model3)
+
+
+Y0.Y6.glmer.guass2= glmer(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) +log((X3+1)/offset(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + offset(log(Total_X6+sum))+ (1|Plot.Number) + (log(X0 + 1)|Plot.Number) +(log(X3 + 1)|Plot.Number) , family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y6.glmer.guass2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.glmer.guass2)
+anova(Y0.Y6.glmer.guass1, Y0.Y3.glmer.guass2)
+
+Y0.Y6.glmer.guass3= glmer(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) +log((X3+1)/offset(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + offset(log(Total_X6+sum))+ (1|Plot.Number) + (1|Quadrat.Number), family = gaussian, data = abundance_only_shade_df1)
+summary(Y0.Y6.glmer.guass3)
+print(Y0.Y6.glmer.guass3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y0.Y6.glmer.guass3)
+anova(Y0.Y6.glmer.guass3, Y0.Y6.glmer.guass1)
+
+
+# according to the Chi-sq value, we will select the random effect (1|plot), both coefficient is positive.
+```

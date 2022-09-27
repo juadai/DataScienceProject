@@ -350,7 +350,7 @@ plot(model10)
 qchisq(0.95,10)
 library(msme)
 P__disp(model10)
-#both are adequate, but the abs_diversity is better fit than relative diversity
+#both are inadequate, but the abs_diversity is better fit than relative diversity
 ```
 
 ```{r poisson_diversity_change_rate, echo = TRUE}
@@ -525,8 +525,8 @@ qqplot(x=qnbinom(samp.pctr1,nb.sizer1, nb.probr1), y=sort(ceiling(abs_richness))
 abline(0,1,col="red")
 #fit the model
 
-modelra6 = glm.nb(abs_relative_abundance + (-min(abs_relative_abundance) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), data = df)
-summary(modelra6)
+modelr6 = glm.nb(abs_richness + (-min(abs_richness) + 1) ~ Treatment  + as.factor(Plot_number) +as.factor(Quadrat_number), data = df)
+summary(modelr6)
 par(mfrow = c(2,2))
 
 plot(modelr6)
