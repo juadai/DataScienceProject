@@ -264,8 +264,8 @@ abline(0,1)
 
 # ------------------------------------------------------------------------------------------
 - All models fit the data very well with very high R^2 values.This is due to the very strong linear correlation between the response variable DBH.year.6 & log(DBH.year.6) and one predictor DBH.year.0 & log(DBH.year.0).
-- However, even though with the prescence of DBH.year.0, the other two categorical predictors (Treatment, Large) still are very significant.
-- The result formula is the same for all models. In some models, intercept is not significant, we are keeping it at prescent.
+- However, even though with the presence of DBH.year.0, the other two categorical predictors (Treatment, Large) still are very significant.
+- The result formula is the same for all models. In some models, intercept is not significant, we are keeping it at present.
 - The estimated parameters satisfy all the hypotheses (in a similar way as previous models):
   1. T2>T1>Control, large>not-large
   2. being T2, and especially being T2&Large has great increase in tree growth.
@@ -279,6 +279,264 @@ gaussian glm for log(DBHdatarm$DBH.year.6) seems to be the "best" model so far. 
 gaussian glm for DBHpositiverm$DBH.year.6 might also be a considerable model. It has constant variance across all groups and has lognormal distribution. It has the 2nd largest R^2 value (0.9801139). Although its residuals have larger range than other log() models, compared to the range of predicted values, they are actually not that very large.
 - Still need improvement if choose this model, and need very convincing explanation for the removed points.
 # ------------------------------------------------------------------------------------------
+
+
+
+
+
+
+# random effect
+```{r}
+par(mfrow=c(3,4))
+for (i in 1:12) {
+  plot(DBHdata[DBHdata$Plot == i, "DBH.year.0"], DBHdata[DBHdata$Plot == i, "DBH.year.6"], xlab = paste("Plot", i, "DBH.year.0"), ylab = paste("Plot", i, "DBH.year.6"), xlim = c(20,70), ylim = c(20,70), col = DBHdata[DBHdata$Plot == i, "Treatment"])
+  abline(0,1)
+}
+
+for (i in 1:12) {
+  plot(log(DBHdata[DBHdata$Plot == i, "DBH.year.0"]), log(DBHdata[DBHdata$Plot == i, "DBH.year.6"]), xlab = paste("Plot", i, "log(DBH.year.0)"), ylab = paste("Plot", i, "log(DBH.year.6)"), xlim = c(3.0,4.3), ylim = c(3.0, 4.3), col = DBHdata[DBHdata$Plot == i, "Treatment"])
+  abline(0,1)
+}
+```
+
+random effect model for log(DBHdatarm$DBH.year.0)
+```{r}
+mixed1.0 = lmer(log(DBH.year.6)~log(DBH.year.0)+Large+Treatment+log(DBH.year.0):Large+Treatment:Large+(1|Plot), data = DBHdatarm)
+summary(mixed1.0)
+VarCorr(mixed1.0)
+y.hat <- fitted(mixed1.0) # Fitted values
+int.hat <- ranef(mixed1.0)[[1]][[1]] # Predicted intercepts
+res.hat <- residuals(mixed1.0) # Estimated residuals
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-y.hat)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9800758
+```
+```{r}
+qqnorm(int.hat, main="Random Intercepts"); qqline(int.hat)
+qqnorm(res.hat, main="Residuals"); qqline(res.hat)
+plot(y.hat, res.hat, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(log(DBHdatarm$DBH.year.6), y.hat, col = DBHdatarm$Treatment)
+abline(0, 1)
+plot(log(DBHdatarm$DBH.year.6), y.hat, col = DBHdatarm$Large)
+abline(0, 1)
+```
+
+random effect model for log(DBHpositiverm$DBH.year.0)
+```{r}
+mixed1.1 = lmer(log(DBH.year.6)~log(DBH.year.0)+Large+Treatment+log(DBH.year.0):Large+Treatment:Large+(1|Plot), data = DBHpositiverm)
+summary(mixed1.1)
+VarCorr(mixed1.1)
+y.hat <- fitted(mixed1.1) # Fitted values
+int.hat <- ranef(mixed1.1)[[1]][[1]] # Predicted intercepts
+res.hat <- residuals(mixed1.1) # Estimated residuals
+tss = sum((log(DBHpositiverm$DBH.year.6)-mean(log(DBHpositiverm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHpositiverm$DBH.year.6)-y.hat)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9839044
+```
+```{r}
+qqnorm(int.hat, main="Random Intercepts"); qqline(int.hat)
+qqnorm(res.hat, main="Residuals"); qqline(res.hat)
+plot(y.hat, res.hat, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(log(DBHpositiverm$DBH.year.6), y.hat, col = DBHpositiverm$Treatment)
+abline(0, 1)
+plot(log(DBHpositiverm$DBH.year.6), y.hat, col = DBHpositiverm$Large)
+abline(0, 1)
+```
+
+# ------------------------------------------------------------------------------------------
+random effect is not significant.
+From the 12 scatter plots, it seems that there's no random intercept or random slope.
+But I think it's still necessary to keep the random intercept term as a reference to human errors.
+# ------------------------------------------------------------------------------------------
+
+
+
+
+
+
+# "In Gap" term
+add "InGap" term
+```{r}
+DBHdata$InGap = (DBHdata$Treatment == "T2: Radial" & DBHdata$Large == "Yes")
+DBHdatarm$InGap = (DBHdatarm$Treatment == "T2: Radial" & DBHdatarm$Large == "Yes")
+DBHpositive$InGap = (DBHpositive$Treatment == "T2: Radial" & DBHpositive$Large == "Yes")
+DBHpositiverm$InGap = (DBHpositiverm$Treatment == "T2: Radial" & DBHpositiverm$Large == "Yes")
+```
+make InGap factor
+```{r}
+DBHdata$InGap = factor(DBHdata$InGap)
+DBHdatarm$InGap = factor(DBHdatarm$InGap)
+DBHpositive$InGap = factor(DBHpositive$InGap)
+DBHpositiverm$InGap = factor(DBHpositiverm$InGap)
+```
+```{r}
+plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = DBHdata$InGap)
+legend("bottomright", legend = c("not InGap", "InGap"), fill = c("black", "red"))
+
+plot(DBHdata[DBHdata$Treatment == "T2: Radial", "DBH.year.0"], DBHdata[DBHdata$Treatment == "T2: Radial", "DBH.year.6"], type = "p", col = DBHdata[DBHdata$Treatment == "T2: Radial", "InGap"])
+legend("bottomright", legend = c("T2 not InGap", "InGap"), fill = c("black", "red"))
+
+plot(DBHdata[DBHdata$Treatment == "T1: Gap" | DBHdata$InGap == TRUE, "DBH.year.0"], DBHdata[DBHdata$Treatment == "T1: Gap" | DBHdata$InGap == TRUE, "DBH.year.6"], type = "p", col = DBHdata[DBHdata$Treatment == "T1: Gap" | DBHdata$InGap == TRUE, "InGap"])
+legend("bottomright", legend = c("T1", "InGap"), fill = c("black", "red"))
+
+plot(DBHdata[DBHdata$Treatment == "Control" | DBHdata$InGap == TRUE, "DBH.year.0"], DBHdata[DBHdata$Treatment == "Control" | DBHdata$InGap == TRUE, "DBH.year.6"], type = "p", col = DBHdata[DBHdata$Treatment == "Control" | DBHdata$InGap == TRUE, "InGap"])
+legend("bottomright", legend = c("Control", "InGap"), fill = c("black", "red"))
+```
+```{r}
+leveneTest(DBH.year.6~InGap, data = DBHdata)
+leveneTest(log(DBH.year.6)~InGap, data = DBHdata)
+
+leveneTest(DBH.year.6~InGap, data = DBHdatarm)
+leveneTest(log(DBH.year.6)~InGap, data = DBHdatarm)
+
+leveneTest(DBH.year.6~InGap, data = DBHpositive)
+leveneTest(log(DBH.year.6)~InGap, data = DBHpositive)
+
+leveneTest(DBH.year.6~InGap, data = DBHpositiverm)
+leveneTest(log(DBH.year.6)~InGap, data = DBHpositiverm)
+```
+# ------------------------------------------------------------------------------------------
+Problem with log(DBH.year.6)~log(DBH.year.0)+Treatment+Large+log(DBH.year.0):InGap + Treatment:InGap
+1. Treatment:InGap is a useless term? because T1:InGap = NA
+2. Large is not significant when there's InGap term
+# ------------------------------------------------------------------------------------------
+
+glm using InGap for log(DBHdatarm$DBH.year.6)
+```{r}
+glm2.0 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap, data = DBHdatarm)
+summary(glm2.0)
+
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-glm2.0$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9786269
+
+par(mfrow=c(2,2))
+plot(glm2.0)
+par(mfrow=c(1,1))
+plot(log(DBHdatarm$DBH.year.6), glm2.0$fitted.values, type = "p", col = DBHdatarm$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(log(DBHdatarm$DBH.year.6), glm2.0$fitted.values, type = "p", col = DBHdatarm$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+plot(log(DBHdatarm$DBH.year.6), glm2.0$fitted.values, type = "p", col = DBHdatarm$InGap)
+legend("bottomright", legend = c("not In Gap", "In Gap"), fill = c("black", "red"))
+abline(0,1)
+```
+
+random effect using InGap for log(DBHdatarm$DBH.year.6)
+```{r}
+mixed2.0 = lmer(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap+(1|Plot), data = DBHdatarm)
+summary(mixed2.0)
+VarCorr(mixed2.0)
+y.hat <- fitted(mixed2.0) # Fitted values
+int.hat <- ranef(mixed2.0)[[1]][[1]] # Predicted intercepts
+res.hat <- residuals(mixed2.0) # Estimated residuals
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-y.hat)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9801595
+```
+```{r}
+qqnorm(int.hat, main="Random Intercepts"); qqline(int.hat)
+qqnorm(res.hat, main="Residuals"); qqline(res.hat)
+plot(y.hat, res.hat, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(log(DBHdatarm$DBH.year.6), y.hat, col = DBHdatarm$Treatment)
+abline(0, 1)
+plot(log(DBHdatarm$DBH.year.6), y.hat, col = DBHdatarm$Large)
+abline(0, 1)
+plot(log(DBHdatarm$DBH.year.6), y.hat, col = DBHdatarm$InGap)
+abline(0, 1)
+```
+
+glm using InGap for log(DBHpositiverm$DBH.year.6)
+```{r}
+glm2.1 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap, data = DBHpositiverm)
+summary(glm2.1)
+
+tss = sum((log(DBHpositiverm$DBH.year.6)-mean(log(DBHpositiverm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHpositiverm$DBH.year.6)-glm2.1$fitted.values)^2) #RSS
+(tss-rss)/tss #R^2 = 0.982808
+
+par(mfrow=c(2,2))
+plot(glm2.1)
+par(mfrow=c(1,1))
+plot(log(DBHpositiverm$DBH.year.6), glm2.1$fitted.values, type = "p", col = DBHpositiverm$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+plot(log(DBHpositiverm$DBH.year.6), glm2.1$fitted.values, type = "p", col = DBHpositiverm$Large)
+legend("bottomright", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0,1)
+plot(log(DBHpositiverm$DBH.year.6), glm2.1$fitted.values, type = "p", col = DBHpositiverm$InGap)
+legend("bottomright", legend = c("not In Gap", "In Gap"), fill = c("black", "red"))
+abline(0,1)
+```
+
+random effect using InGap for log(DBHpositiverm$DBH.year.6)
+```{r}
+mixed2.1 = lmer(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap+(1|Plot), data = DBHpositiverm)
+summary(mixed2.1)
+VarCorr(mixed2.1)
+y.hat <- fitted(mixed2.1) # Fitted values
+int.hat <- ranef(mixed2.1)[[1]][[1]] # Predicted intercepts
+res.hat <- residuals(mixed2.1) # Estimated residuals
+tss = sum((log(DBHpositiverm$DBH.year.6)-mean(log(DBHpositiverm$DBH.year.6)))^2) #TSS
+rss = sum((log(DBHpositiverm$DBH.year.6)-y.hat)^2) #RSS
+(tss-rss)/tss #R^2 = 0.9840615
+```
+```{r}
+qqnorm(int.hat, main="Random Intercepts"); qqline(int.hat)
+qqnorm(res.hat, main="Residuals"); qqline(res.hat)
+plot(y.hat, res.hat, xlab="Fitted Values", ylab="Residuals")
+abline(h=0, lty=2)
+plot(log(DBHpositiverm$DBH.year.6), y.hat, col = DBHpositiverm$Treatment)
+abline(0, 1)
+plot(log(DBHpositiverm$DBH.year.6), y.hat, col = DBHpositiverm$Large)
+abline(0, 1)
+plot(log(DBHpositiverm$DBH.year.6), y.hat, col = DBHpositiverm$InGap)
+abline(0, 1)
+```
+
+
+
+
+
+
+# Interpretation
+# ------------------------------------------------------------------------------------------
+ACHIEVEMENTS:
+1. All models can explain priority1
+
+PROBLEMS:
+1. Cannot priority2(tree growth for large trees) because "Large" is insignificant when there's "InGap" term.
+    -> use scatter plot of tree.growth vs DBH.year.0 to explain
+2. Cannot say bigger DBH.year.0/tree size gives bigger tree growth (priority3.1), 
+   INSTEAD, we can say bigger DBH.year.0/tree size results in bigger DBH.year.6)
+    -> use scatter plot of tree.growth vs DBH.year.0 to explain
+3. Coefficients for InGapTRUE and log(DBH.year.0):InGapTRUE form a constrain for InGap tree growth > not InGap tree growth.
+    -> not sure how to interpret these constrains
+    -> guess: much fewer data points over constrain, so the model might not be very accurate
+# ------------------------------------------------------------------------------------------
+
+```{r}
+plot(DBHdatarm$DBH.year.0, DBHdatarm$DBH.year.6, col = DBHdatarm$InGap)
+abline(v = 50.5221)
+```
+```{r}
+DBHdatarm[DBHdatarm$DBH.year.0 > 50.5221, ]
+```
+
+
+
+
+
+
+# Futher work
+1. examine the 11 points classified as outliers in the original datasheet
+
+
 
 
 
