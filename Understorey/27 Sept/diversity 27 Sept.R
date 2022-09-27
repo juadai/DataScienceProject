@@ -2,6 +2,7 @@
 # Load data
 library(rstudioapi)
 library(pROC)
+library(lme4)
 
 setwd(dirname(getActiveDocumentContext()$path))
 diversity_df <- read.csv('../dataset/tables/species_divers_quadrats.csv')
@@ -50,6 +51,19 @@ diversity_Y3_02$call
 diversity_Y3_03$call
 anova(diversity_Y3_03, diversity_Y3_02, test='Chi')
 # Can't take the smaller model - Treatment, Treatment:Gap, Fenced are significant
+summary(diversity_Y3_02)
+
+
+mixed_Y3_01 <- lmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Gap + Treatment:Gap +
+                      (1 | Plot.Number), data = diversity_df)
+summary(mixed_Y3_01)
+anova(mixed_Y3_01, diversity_Y3_02)
+colnames(diversity_df)
+coef(mixed_Y3_01)
+
+plot(mixed_Y3_01)
+
+
 
 ##############################
 # Diversity Modeling: Y6 ~ N #

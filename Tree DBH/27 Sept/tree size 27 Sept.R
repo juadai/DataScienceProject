@@ -34,10 +34,11 @@ outliers_model1
 df[names(outliers_model1),]
 
 
-# Try mixed effect model - random indercept at the plot level
+# Try mixed effect model - random intercept at the plot level
 model2 <- lmer(log.DBH.year.6 ~ (log.DBH.year.0 + Treatment + Large)^2 +
                (1|Plot), data=df)
 summary(model2)
+coef(model2)
 
 
 df$Gap <- FALSE
@@ -70,3 +71,25 @@ df[names(outliers_mixed),]
 rss <- sum((df$log.DBH.year.6-fitted(model4))^2)
 tss <- sum((df$log.DBH.year.6-mean(df$log.DBH.year.6))^2)
 1-rss/tss
+
+
+# Final model - mixed effect model with random intercept fixed slope
+# GAP variable in the model rather than LARGE
+# --> Easier to interpret, human-readable
+# We can include plots to describe LARGE vs NOT-LARGE, and its impact on variance rather than slope
+
+
+# To do - Outlier analysis
+# Check the original sheets for these tree numbers
+
+# To do - Think about constraint on parameter interpretation
+# Likely to do with sparse data in high tree classes
+
+# To do - interpret the best/clearest model and parameters
+
+
+
+
+
+
+

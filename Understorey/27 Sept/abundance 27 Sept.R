@@ -56,6 +56,7 @@ abundance_Y3_11 <- glm(log_X3 ~ (log_X0 + Treatment + Gap + Fenced)^2, data=abun
 abundance_Y3_12 <- step(abundance_Y3_11)
 summary(abundance_Y3_12)
 
+k <- log(length(abundance_totals[,1]))
 abundance_Y3_13 <- step(abundance_Y3_11, k=k)
 summary(abundance_Y3_13)
 anova(abundance_Y3_13, abundance_Y3_12, test='Chi')
@@ -78,6 +79,12 @@ summary(abundance_Y6_13)
 
 anova(abundance_Y6_13, abundance_Y6_12, test='Chi')
 # Fit of models are similar at 5% significance level
+
+plot(abundance_Y6_13)
+
+mean(abundance_totals$X6)
+
+
 
 
 

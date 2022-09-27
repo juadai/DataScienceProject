@@ -71,9 +71,32 @@ anova(richness_Y6_02, richness_Y6_03, test='Chi')
 # Keep the larger model 2
 summary(richness_Y6_02)
 
+richness_Y6_01 <- glm(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2, 
+                      family='poisson', data=richness_df)
+
 pchisq(313.82, 225, lower=F) # Fail
 
 
+modelY6 <- glmer(X6 ~ X0 + X3 + Treatment + Gap + Fenced + X0:X3 + 
+                   X0:Fenced + X3:Treatment + X3:Fenced + Treatment:Gap +
+                   (1 | Plot.Number), family = "poisson", 
+                 data = richness_df)
+
+summary(modelY6)$Plot.Number
+
+# log(lambda) = x*beta
+# lambda = exp(x*beta) 
+exp(2.180927)
+exp(1.689850)
+
+coef(modelY6)
+colnames(richness_df)
+
+plot(modelY6)
+plot(richness_Y6_02)
+
+# Try negative binomial
+# Try poisson without interaction
 
 
 
