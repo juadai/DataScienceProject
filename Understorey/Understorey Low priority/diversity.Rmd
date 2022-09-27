@@ -1,0 +1,603 @@
+---
+title: "diversity"
+author: "Juan Dai"
+date: "2022-09-19"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Desktop/capstone/analysis/Juan/Understorey_priority2&low")
+library(MASS)
+library(survival)
+library(fitdistrplus)
+```
+
+
+```{r data_loading, echo=TRUE}
+#Load data
+diversity_df <- read.csv('./dataset/tables/species_divers_quadrats.csv')
+diversity_df_plot <- read.csv('./contingency tables/output/diversity/species_divers_plots.csv')
+diversity_df_treat <- read.csv('./contingency tables/output/diversity/species_divers_treatments.csv')
+
+
+# Treatments, Plot numbers, Quadrat numbers, Life forms as factors
+diversity_df$Treatment <- factor(diversity_df$Treatment)
+diversity_df$Plot.Number <- factor(diversity_df$Plot.Number)
+diversity_df$Quadrat.Number <- factor(diversity_df$Quadrat.Number)
+
+# Convert Fenced, Gap columns to boolean
+diversity_df$Gap <- diversity_df$Gap=='True'
+diversity_df$Fenced <- diversity_df$Fenced=='True'
+
+#diversity_df_plot$Gap <- diversity_df_plot$Gap=='True'
+#diversity_df_plot$Fenced <- diversity_df_plot$Fenced=='True'
+
+# Remove null rows
+diversity_df <- na.omit(diversity_df)
+#diversity_df_plot <- na.omit(diversity_df_plot)
+
+```
+
+## Data preparation
+```{r data, echo=TRUE}
+diversity_df$Y0.Y3.Difference <- diversity_df$X3 - diversity_df$X0
+diversity_df$Y3.Y6.Difference <- diversity_df$X6 - diversity_df$X3
+diversity_df$Y0.Y6.Difference <- diversity_df$X6 - diversity_df$X0
+
+diversity_df$Y0.Y3.Abs_Difference <- diversity_df$Y0.Y3.Difference + abs(min(diversity_df$Y0.Y3.Difference)) + 1
+diversity_df$Y3.Y6.Abs_Difference <- diversity_df$Y3.Y6.Difference + abs(min(diversity_df$Y3.Y6.Difference)) + 1
+diversity_df$Y0.Y6.Abs_Difference <- diversity_df$Y0.Y6.Difference + abs(min(diversity_df$Y0.Y6.Difference)) + 1
+```
+
+
+# modelling
+```{r 0to3_gaussian, echo=True}
+# guassian modeling
+# model using gaussian
+Y0.Y3.guas.model=fitdist(diversity_df$Y0.Y3.Difference, "norm")
+Y0.Y3.guas.model
+guas.mean=Y0.Y3.guas.model$estimate[1]
+guas.sd =Y0.Y3.guas.model$estimate[2]
+plot(Y0.Y3.guas.model)
+
+n=length(diversity_df$Y0.Y3.Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(diversity_df$Y0.Y3.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y0.Y3.guass.model = glm(Y0.Y3.Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y0.Y3.guass.model)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.guass.model)
+Y0.Y3.pure.guass.model <- glm(Y0.Y3.Difference ~ 1, family = gaussian, data = diversity_df)
+anova( Y0.Y3.pure.guass.model, Y0.Y3.guass.model, test = "F")
+# In model fitting, the treatment radial, gap, fenced are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = 0.04783
+```
+
+
+```{r model_selection_guassian, echo=TRUE}
+Y0.Y3.guass.model_selected <-step(Y0.Y3.guass.model, scope=~.)
+summary(Y0.Y3.guass.model_selected)
+# only treatment, gap and fenced are significant, all other factors are not significant in predicting the yr_relative_abundance_difference, AIC decreases from 537.56 to 509.76
+anova(Y0.Y3.guass.model_selected, Y0.Y3.pure.guass.model,test = "F")
+# the selected model states that only the treatment is related to the diversity
+#Pr(>F) = 0.0003961
+```
+
+
+```{r glm_fit_gamma, echo=TRUE}
+Y0.Y3.gamma.model1=fitdist(diversity_df$Y0.Y3.Abs_Difference, "gamma")
+Y0.Y3.gamma.model1
+gamma.alpha=Y0.Y3.gamma.model1$estimate[1]
+gamma.beta =Y0.Y3.gamma.model1$estimate[2]
+plot(Y0.Y3.gamma.model1)
+
+n=length(diversity_df$Y0.Y3.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(diversity_df$Y0.Y3.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+Y0.Y3.gamma.model2 = glm(Y0.Y3.Abs_Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y0.Y3.gamma.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.gamma.model2)
+```
+
+```{r model_selection_gamma, echo=TRUE}
+Y0.Y3.gamma.model_selected <-step(Y0.Y3.gamma.model2, scope=~.)
+summary(Y0.Y3.gamma.model_selected)
+# AIC decrease from 552.32 to 521.18
+Y0.Y3.empty_gamma_model <- glm(Y0.Y3.Abs_Difference ~ 1, family = Gamma, data = diversity_df)
+anova(Y0.Y3.gamma.model_selected, Y0.Y3.empty_gamma_model, test = "F")
+# the model is not significant at 5%, suggests that all coefficients are not zero, Pr(>CHi) = 1
+```
+
+
+```{r fit_poisson_model, echo=TRUE}
+Y0.Y3.poisson.model1=fitdist(ceiling(diversity_df$Y0.Y3.Abs_Difference*10), "pois")
+Y0.Y3.poisson.model1
+poisson.lambda=Y0.Y3.poisson.model1$estimate
+plot(Y0.Y3.poisson.model1)
+
+n=length(ceiling(diversity_df$Y0.Y3.Abs_Difference*10))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(ceiling(diversity_df$Y0.Y3.Abs_Difference*10)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+
+Y0.Y3.poisson.model2 = glm(Y0.Y3.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = diversity_df)
+summary(Y0.Y3.poisson.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.poisson.model2)
+```
+
+```{r model_selection_poisson, echo=TRUE, warning=FALSE}
+Y0.Y3.poisson.model_selected <-step(Y0.Y3.poisson.model2, scope=~.)
+summary(Y0.Y3.poisson.model_selected)
+#AIC is Inf
+Y0.Y3.empty_poisson_model <- glm(Y0.Y3.Abs_Difference ~ 1, family = poisson, data = diversity_df)
+anova(Y0.Y3.poisson.model_selected, Y0.Y3.empty_poisson_model, test = "Chi")
+# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>F) = 8.643e-07
+```
+
+
+```{r fit_negative_binomial, echo=TRUE}
+#Negative Binomial GLM
+
+#visualisation and test if the data is negative binomial
+Y0.Y3.nb.model1=fitdist(ceiling(diversity_df$Y0.Y3.Abs_Difference*10), "nbinom")
+Y0.Y3.nb.model1
+nb.size=Y0.Y3.nb.model1$estimate[1]
+nb.mu = Y0.Y3.nb.model1$estimate[2]
+nb.prob=nb.size/(nb.size+nb.mu) 
+plot(Y0.Y3.nb.model1)
+
+n=length(ceiling(diversity_df$Y0.Y3.Abs_Difference*10))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(ceiling(diversity_df$Y0.Y3.Abs_Difference*10)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+Y0.Y3.nb.model2 = glm.nb(Y0.Y3.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, data = diversity_df)
+summary(Y0.Y3.nb.model2 )
+par(mfrow = c(2,2))
+plot(Y0.Y3.nb.model2)
+```
+
+```{r model_selection_negative_binomial, echo=TRUE, warning=FALSE}
+Y0.Y3.nb.model_selected <-step(Y0.Y3.nb.model2, scope=~.)
+summary(Y0.Y3.nb.model_selected)
+# AIC decrease from 932 to 869.86
+Y0.Y3.empty_nb_model <- glm.nb(Y0.Y3.Abs_Difference ~ 1,  data = diversity_df)
+anova(Y0.Y3.nb.model_selected, Y0.Y3.empty_nb_model, test = "LR")
+# the model is significant at 5%, suggest that all coefficients are zero, we fail to reject the null at 5% significance level, Pr(>z) = 1
+```
+
+
+**if select the model based on the AIC value for each model, then we need to select the gaussian model, since it has the lowest AIC of 509.76**
+
+
+## diffrent modeling via prediction
+```{r model_prediction_gaussian, echo=TRUE}
+Y0.Y3.guass.model2 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y0.Y3.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model2)
+
+Y0.Y3.gamma.model3 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y0.Y3.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.gamma.model3)
+
+Y0.Y3.nb.model3 = glm.nb(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced,data = diversity_df)
+summary(Y0.Y3.nb.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.nb.model3)
+
+Y0.Y3.poisson.model3 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = diversity_df)
+summary(Y0.Y3.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model3)
+```
+
+```{r model_selection_prediction_gaussian, echo=TRUE, warning=FALSE}
+Y0.Y3.select_guass.model2 <- step(Y0.Y3.guass.model2, scope=~.)
+summary(Y0.Y3.select_guass.model2)
+# AIC: 461.73 - 434.29
+
+Y0.Y3.select_gamma.model3 <- step(Y0.Y3.gamma.model3, scope=~.)
+summary(Y0.Y3.select_gamma.model3)
+# AIC: 473.33 - 439.79
+
+
+Y0.Y3.select_poisson.model3 <- step(Y0.Y3.poisson.model3, scope=~.)
+summary(Y0.Y3.select_poisson.model3)
+# AIC is inf
+
+Y0.Y3.select_nb.model3 <- step(Y0.Y3.nb.model3, scope=~.)
+summary(Y0.Y3.select_nb.model3)
+# AIC: 767.07 -  706.12
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 434, only X0, Treatment, and Gap are related to the Y3 diversity prediction, and Gap has positive effect, while Radial has negative effect
+```
+
+**Therefore, we will select the prediction model, since it has the lowest AIC of 439**
+```{r model_selection_prediction_gaussian, echo=TRUE, warning=FALSE}
+Y0.Y3.glmer.guass1= glmer(X3 ~ X0 + Treatment  +  Fenced+ (1|Plot.Number), family = gaussian, data = diversity_df)
+summary(Y0.Y3.glmer.guass1)
+print(Y0.Y3.glmer.guass1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y0.Y3.glmer.guass1)
+plot(Y0.Y3.glmer.guass1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=diversity_df$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+par(mfrow=c(1,1))
+qqnorm(resid(Y0.Y3.glmer.guass1),pch=16,col=diversity_df$Plot.Number)
+qqline(resid(Y0.Y3.glmer.guass1))
+anova(Y0.Y3.glmer.guass1, Y0.Y3.select_guass.model2)
+
+
+Y0.Y3.glmer.guass2= glmer(X3 ~ X0 + Treatment  +  Fenced+ (1|Plot.Number) +(X0|Plot.Number) , family = gaussian, data = diversity_df)
+summary(Y0.Y3.glmer.guass2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.glmer.guass2)
+anova(Y0.Y3.glmer.guass1, Y0.Y3.glmer.guass2)
+
+Y0.Y3.glmer.guass3= glmer(X3 ~ X0 + Treatment +  Fenced+ (1|Plot.Number)+ (1|Quadrat.Number), family = gaussian, data = diversity_df)
+summary(Y0.Y3.glmer.guass3)
+print(Y0.Y3.glmer.guass3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y0.Y3.glmer.guass3)
+anova(Y0.Y3.glmer.guass3, Y0.Y3.glmer.guass2)
+```
+
+
+##Yr3 to Yr6
+# modelling
+```{r gaussian_Y36, echo=True}
+# guassian modeling
+# model using gaussian
+Y3.Y6.guas.model=fitdist(diversity_df$Y3.Y6.Difference, "norm")
+Y3.Y6.guas.model
+guas.mean=Y3.Y6.guas.model$estimate[1]
+guas.sd =Y3.Y6.guas.model$estimate[2]
+plot(Y3.Y6.guas.model)
+
+n=length(diversity_df$Y3.Y6.Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(diversity_df$Y3.Y6.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y3.Y6.guass.model = glm(Y3.Y6.Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y3.Y6.guass.model)
+par(mfrow = c(2,2))
+
+plot(Y3.Y6.guass.model)
+Y3.Y6.pure.guass.model <- glm(Y3.Y6.Difference ~ 1, family = gaussian, data = diversity_df)
+anova(Y3.Y6.pure.guass.model, Y3.Y6.guass.model, test = "F")
+# In model fitting, the treatment radial, some quadrat are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we fail to reject null at 5% significance level
+# Pr(>F) = 0.08095
+```
+
+
+```{r model_selection_guassian_Y36, echo=TRUE}
+Y3.Y6.guass.model_selected <-step(Y3.Y6.guass.model, scope=~.)
+summary(Y3.Y6.guass.model_selected)
+# only treatment and radial is significant, all other factor is not significant in predicting the yr_diveristy_difference, AIC decreases from 558.09to 532.19
+anova(Y3.Y6.guass.model_selected, Y3.Y6.pure.guass.model,test = "F")
+# the selected model states that the gap and treatment is related to the diversity
+#Pr(>F) = 0.005175
+```
+
+
+```{r glm_fit_gamma_Y36, echo=TRUE}
+Y3.Y6.gamma.model1=fitdist(diversity_df$Y3.Y6.Abs_Difference, "gamma")
+Y3.Y6.gamma.model1
+gamma.alpha=Y3.Y6.gamma.model1$estimate[1]
+gamma.beta =Y3.Y6.gamma.model1$estimate[2]
+plot(Y3.Y6.gamma.model1)
+
+n=length(diversity_df$Y3.Y6.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(diversity_df$Y3.Y6.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+Y3.Y6.gamma.model2 = glm(Y3.Y6.Abs_Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y3.Y6.gamma.model2)
+par(mfrow = c(2,2))
+plot(Y3.Y6.gamma.model2)
+```
+
+```{r model_selection_gamma_Y36, echo=TRUE}
+Y3.Y6.gamma.model_selected <-step(Y3.Y6.gamma.model2, scope=~.)
+summary(Y3.Y6.gamma.model_selected)
+# AIC decrease from 566.23 to 538.9
+Y3.Y6.empty_gamma_model <- glm(Y3.Y6.Abs_Difference ~ 1, family = Gamma, data = diversity_df)
+anova(Y3.Y6.gamma.model_selected, Y3.Y6.empty_gamma_model, test = "F")
+# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>F) = 0.004878
+```
+
+
+```{r fit_negative_binomial_Y36, echo=TRUE}
+#Negative Binomial GLM
+
+#visualisation and test if the data is negative binomial
+Y3.Y6.nb.model1=fitdist(ceiling(diversity_df$Y3.Y6.Abs_Difference*10), "nbinom")
+Y3.Y6.nb.model1
+nb.size=Y3.Y6.nb.model1$estimate[1]
+nb.mu = Y3.Y6.nb.model1$estimate[2]
+nb.prob=nb.size/(nb.size+nb.mu) 
+plot(Y3.Y6.nb.model1)
+
+n=length(ceiling(diversity_df$Y3.Y6.Abs_Difference*10))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(ceiling(diversity_df$Y3.Y6.Abs_Difference*10)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+Y3.Y6.nb.model2 = glm.nb(Y3.Y6.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, data = diversity_df)
+summary(Y3.Y6.nb.model2 )
+par(mfrow = c(2,2))
+plot(Y3.Y6.nb.model2)
+```
+
+```{r model_selection_negative_binomial_Y36, echo=TRUE, warning=FALSE}
+Y3.Y6.nb.model_selected <-step(Y3.Y6.nb.model2, scope=~.)
+summary(Y3.Y6.nb.model_selected)
+# AIC decrease from 893.9 to 832.86
+Y3.Y6.empty_nb_model <- glm.nb(Y3.Y6.Abs_Difference ~ 1,  data = diversity_df)
+anova(Y3.Y6.nb.model_selected, Y3.Y6.empty_nb_model, test = "LR")
+# the model is significant at 5%, suggest that all the coefficients are zero, Pr(>Chi) = 0
+```
+
+**according to AIC for each model, we should use gaussian models, since it has the lowest AIC of 532**
+
+
+
+
+## diffrent modeling via prediction for yr3 to yr6
+```{r model_prediction_gaussian_Y36, echo=TRUE}
+Y3.Y6.guass.model2 = glm(X6 ~ X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y3.Y6.guass.model2)
+par(mfrow = c(2,2))
+plot(Y3.Y6.guass.model2)
+
+Y3.Y6.gamma.model3 = glm(X6 ~ X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y3.Y6.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y3.Y6.gamma.model3)
+```
+
+```{r model_selection_prediction_gaussian_Y36, echo=TRUE}
+Y3.Y6.select_guass.model2 <- step(Y3.Y6.guass.model2, scope=~.)
+summary(Y3.Y6.select_guass.model2)
+#AIC: 506.53 - 468.1
+
+
+Y3.Y6.select_gamma.model3 <- step(Y3.Y6.gamma.model3, scope=~.)
+summary(Y3.Y6.select_gamma.model3)
+#AIC: 498.99 - 456.64
+
+# if we use the AIC to choose the model, we will choose the gamma model, it yields the lowest AIC of 456.64
+```
+
+**according to the prediction models, we should use the gamma prediction models, since it has the lowest AIC of 456.64**
+
+
+```{r model_selection_prediction_gaussian, echo=TRUE, warning=FALSE}
+Y3.Y6.glmer.gamma1= glmer(X6 ~  X3 + Treatment  +  Fenced+ (1|Plot.Number), family = Gamma, data = diversity_df)
+summary(Y3.Y6.glmer.gamma1)
+print(Y3.Y6.glmer.gamma1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y3.Y6.glmer.gamma1)
+plot(Y3.Y6.glmer.gamma1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=diversity_df$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+par(mfrow=c(1,1))
+qqnorm(resid(Y3.Y6.glmer.gamma1),pch=16,col=diversity_df$Plot.Number)
+qqline(resid(Y3.Y6.glmer.gamma1))
+anova(Y3.Y6.glmer.gamma1, Y3.Y6.select_gamma.model3)
+
+Y3.Y6.glmer.gamma2= glmer(X6 ~  X3 + Treatment  +  Fenced+ (1|Plot.Number) +(X0|Plot.Number) , family = Gamma, data = diversity_df)
+summary(Y3.Y6.glmer.gamma2)
+par(mfrow = c(2,2))
+plot(Y3.Y6.glmer.gamma2)
+anova(Y3.Y6.glmer.gamma1, Y3.Y6.glmer.gamma2)
+
+Y3.Y6.glmer.gamma3= glmer(X6 ~X3 + Treatment +  Fenced+ (1|Plot.Number)+ (1|Quadrat.Number), family = Gamma, data = diversity_df)
+summary(Y3.Y6.glmer.gamma3)
+print(Y3.Y6.glmer.gamma3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y3.Y6.glmer.gamma3)
+anova(Y3.Y6.glmer.gamma3, Y0.Y6.glmer.gamma2)
+```
+
+
+
+
+
+
+##Yr0 to Yr6
+# modelling
+```{r gaussian_Y06, echo=True}
+# guassian modeling
+# model using gaussian
+Y0.Y6.guas.model=fitdist(diversity_df$Y0.Y6.Difference, "norm")
+Y0.Y6.guas.model
+guas.mean=Y0.Y6.guas.model$estimate[1]
+guas.sd =Y0.Y6.guas.model$estimate[2]
+plot(Y0.Y6.guas.model)
+
+n=length(diversity_df$Y0.Y6.Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(diversity_df$Y0.Y6.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main = 'Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y0.Y6.guass.model = glm(Y0.Y6.Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y0.Y6.guass.model)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.guass.model)
+Y0.Y6.pure.guass.model <- glm(Y0.Y6.Difference ~ 1, family = gaussian, data = diversity_df)
+anova(Y0.Y6.pure.guass.model, Y0.Y6.guass.model, test = "F")
+# In model fitting, the intercept, gap and some quadrates number are statistically significant, but when we use F-stats to test the H0: all the coefficient is zero, it states that we fail to reject null at 5% significance level
+# Pr(>F) = 0.2032
+```
+
+
+```{r model_selection_guassian_Y06, echo=TRUE}
+Y0.Y6.guass.model_selected <-step(Y0.Y6.guass.model, scope=~.)
+summary(Y0.Y6.guass.model_selected)
+# only treatment radial is significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 649.76 to 606.62
+anova(Y0.Y6.guass.model_selected, Y0.Y6.pure.guass.model,test = "F")
+# the selected model states that only the gap is related to the diversity in yr6 
+#Pr(>F) = 0.001314
+```
+
+
+```{r glm_fit_gamma_Y06, echo=TRUE}
+Y0.Y6.gamma.model1=fitdist(diversity_df$Y0.Y6.Abs_Difference, "gamma")
+Y0.Y6.gamma.model1
+gamma.alpha=Y0.Y6.gamma.model1$estimate[1]
+gamma.beta =Y0.Y6.gamma.model1$estimate[2]
+plot(Y0.Y6.gamma.model1)
+
+n=length(diversity_df$Y0.Y6.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(diversity_df$Y0.Y6.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+Y0.Y6.gamma.model2 = glm(Y0.Y6.Abs_Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y0.Y6.gamma.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.gamma.model2)
+```
+
+```{r model_selection_gamma_Y06, echo=TRUE}
+Y0.Y6.gamma.model_selected <-step(Y0.Y6.gamma.model2, scope=~.)
+summary(Y0.Y6.gamma.model_selected)
+# AIC decrease from 654.2 to 608.94
+Y0.Y6.empty_gamma_model <- glm(Y0.Y6.Abs_Difference ~ 1, family = Gamma, data = diversity_df)
+anova(Y0.Y6.gamma.model_selected, Y0.Y6.empty_gamma_model, test = "F")
+# the model is significant at 5%, suggest that only the coefficient for Gap is not zero, Pr(>F) = 0.001362
+```
+
+**According to the AIC for gaussian and gamma model, we will choose the gaussian model because it gives an even lower AIC of 607 compared to the value of 609 yielded by gamma model**
+
+
+
+
+
+## diffrent modeling via prediction for yr0 to yr6 (not include X3)
+```{r model_prediction_gaussian_Y06, echo=TRUE, warning=FALSE}
+Y0.Y6.guass.model2 = glm(X6 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y0.Y6.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.guass.model2)
+
+Y0.Y6.gamma.model3 = glm(X6 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y0.Y6.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.gamma.model3)
+
+Y0.Y6.poisson.model3 = glm(X6 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = diversity_df)
+summary(Y0.Y6.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.poisson.model3)
+```
+
+```{r model_selection_prediction_gaussian_Y06, echo=TRUE, warning=FALSE}
+Y0.Y6.select_guass.model2 <- step(Y0.Y6.guass.model2, scope=~.)
+summary(Y0.Y6.select_guass.model2)
+#AIC: 562.32 - 515.8
+
+
+Y0.Y6.select_gamma.model3 <- step(Y0.Y6.gamma.model3, scope=~.)
+summary(Y0.Y6.select_gamma.model3)
+#AIC: 547.35 - 498.17
+
+Y0.Y6.select_poisson.model3 <- step(Y0.Y6.poisson.model3, scope=~.)
+summary(Y0.Y6.select_poisson.model3)
+#AIC: 562.32 - 515.8
+
+# if we use the AIC to choose the model, we will choose the gaussian model, it yields the lowest AIC of 498.17, in the gamma model, all the treatment, X0, Gap are significant in predicting the Year 6 diversity at 5% significance level.
+#both treatment are negative
+
+#in the gauassian model, all the treatment, X0, Gap are significant in predicting the Year 6 diversity at 5% significance level.
+#both treatment factor are positive.
+```
+
+
+## diffrent modeling via prediction for yr0 to yr6 (include X3)
+```{r model_prediction_gaussian_Y036, echo=TRUE, warning=FALSE}
+Y0.Y6.guass.model3 = glm(X6 ~ X0 + X3 + Treatment + Gap + Quadrat.Number + Fenced, family = gaussian, data = diversity_df)
+summary(Y0.Y6.guass.model3)
+par(mfrow = c(2,2))
+plot(Y0.Y6.guass.model3)
+
+Y0.Y6.gamma.model4 = glm(X6 ~ X0 + X3+ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = diversity_df)
+summary(Y0.Y6.gamma.model4)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.gamma.model4)
+
+Y0.Y6.poisson.model4 = glm(X6 ~ X0 + X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = diversity_df)
+summary(Y0.Y6.poisson.model4)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.poisson.model4)
+```
+
+```{r model_selection_prediction_gaussian_Y036, echo=TRUE, warning=FALSE}
+Y0.Y6.select_guass.model3 <- step(Y0.Y6.guass.model3, scope=~.)
+summary(Y0.Y6.select_guass.model2)
+#AIC: 508.52 - 515.8
+
+
+Y0.Y6.select_gamma.model4 <- step(Y0.Y6.gamma.model4, scope=~.)
+summary(Y0.Y6.select_gamma.model4)
+#AIC: 500.73 - 456.64
+
+
+Y0.Y6.select_poisson.model4 <- step(Y0.Y6.poisson.model4, scope=~.)
+summary(Y0.Y6.select_poisson.model4)
+
+# if we use the AIC to choose the model, we will choose the gamma model, it yields the lowest AIC of 457, in the gamma model, only X3, treatment, Gap are significant in predicting the diversity of year 6 at 5% significance level.
+#Both treatment state a negative effect on diversity 
+```
+
+```{r model_selection_prediction_gaussian, echo=TRUE, warning=FALSE}
+Y0.Y6.glmer.gamma1= glmer(X6 ~ X0 + X3 + Treatment  +  Fenced+ (1|Plot.Number), family = Gamma, data = diversity_df)
+summary(Y0.Y6.glmer.gamma1)
+print(Y0.Y6.glmer.gamma1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y0.Y6.glmer.gamma1)
+plot(Y0.Y6.glmer.gamma1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=diversity_df$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+par(mfrow=c(1,1))
+qqnorm(resid(Y0.Y6.glmer.gamma1),pch=16,col=diversity_df$Plot.Number)
+qqline(resid(Y0.Y6.glmer.gamma1))
+anova(Y0.Y6.glmer.gamma1, Y0.Y6.select_gamma.model4)
+
+Y0.Y6.glmer.gamma2= glmer(X6 ~ X0 + X3 + Treatment  +  Fenced+ (1|Plot.Number) +(X0|Plot.Number) , family = Gamma, data = diversity_df)
+summary(Y0.Y6.glmer.gamma2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.glmer.gamma2)
+anova(Y0.Y6.glmer.gamma1, Y0.Y6.glmer.gamma2)
+
+Y0.Y6.glmer.gamma3= glmer(X6 ~ X0 + X3 + Treatment +  Fenced+ (1|Plot.Number)+ (1|Quadrat.Number), family = Gamma, data = diversity_df)
+summary(Y0.Y6.glmer.gamma3)
+print(Y0.Y6.glmer.gamma3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y0.Y6.glmer.gamma3)
+anova(Y0.Y6.glmer.gamma3, Y0.Y6.glmer.gamma2)
+```
+**Therefore, select the prediction model with the random effect (1|plot)**

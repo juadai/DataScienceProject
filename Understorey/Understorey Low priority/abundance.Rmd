@@ -1,0 +1,786 @@
+---
+title: "Abundance"
+author: "Juan Dai"
+date: "2022-09-19"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Desktop/capstone/analysis/Juan/Understorey_priority2&low")
+library(MASS)
+library(survival)
+library(fitdistrplus)
+library(reshape2)
+library(dplyr)
+library(plyr) 
+library(lme4)
+```
+
+
+abundance_totals => total abundance
+abundance_rel_df => relative abundance according to each life form
+```{r data_loading, echo=TRUE}
+# Load data
+abundance_df <- read.csv('./dataset/tables/lf_abund_analysis.csv')
+abundance_rel_df <- read.csv('./dataset/tables/lf_abund_rel_analysis.csv')
+abundance_matrix <- read.csv('./contingency tables/output/abundance/lf_abund_quadrats.csv')
+
+# Total abundance for each quadrat
+n = length(abundance_matrix[,1])
+X0 <-rowSums(abundance_matrix[,abundance_matrix[1,] == 0])[3:n]
+X3 <-rowSums(abundance_matrix[,abundance_matrix[1,] == 3])[3:n]
+X6 <-rowSums(abundance_matrix[,abundance_matrix[1,] == 6])[3:n]
+
+abundance_totals <- abundance_matrix[,1:5]
+colnames(abundance_totals) <- abundance_totals[2,]
+abundance_totals <- cbind(abundance_totals[3:n,], X0, X3, X6)
+
+abundance_totals <- abundance_totals[abundance_totals$X0>0,]
+abundance_totals <- abundance_totals[abundance_totals$X3>0,]
+abundance_totals <- abundance_totals[abundance_totals$X6>0,]
+
+colnames(abundance_totals) <- c('Treatment', 'Plot.Number', 'Quadrat.Number',
+                                'Fenced', 'Gap', 'X0', 'X3', 'X6')
+
+# Treatments, Plot numbers, Quadrat numbers, Life forms as factors
+abundance_df$Treatment <- factor(abundance_df$Treatment)
+abundance_df$Plot.Number <- factor(abundance_df$Plot.Number)
+abundance_df$Quadrat.Number <- factor(abundance_df$Quadrat.Number)
+abundance_df$Life.Form <- factor(abundance_df$Life.Form)
+
+abundance_rel_df$Treatment <- factor(abundance_rel_df$Treatment)
+abundance_rel_df$Plot.Number <- factor(abundance_rel_df$Plot.Number)
+abundance_rel_df$Quadrat.Number <- factor(abundance_rel_df$Quadrat.Number)
+abundance_rel_df$Life.Form <- factor(abundance_rel_df$Life.Form)
+
+abundance_totals$Treatment <- factor(abundance_totals$Treatment)
+abundance_totals$Plot.Number <- factor(abundance_totals$Plot.Number)
+abundance_totals$Quadrat.Number <- factor(abundance_totals$Quadrat.Number)
+
+# Convert Fenced, Gap columns to boolean
+abundance_df$Gap <- abundance_df$Gap=='True'
+abundance_df$Fenced <- abundance_df$Fenced=='True'
+
+
+abundance_rel_df$Gap <- abundance_rel_df$Gap=='True'
+abundance_rel_df$Fenced <- abundance_rel_df$Fenced=='True'
+
+abundance_totals$Gap <- abundance_totals$Gap=='True'
+abundance_totals$Fenced <- abundance_totals$Fenced=='True'
+
+# Relative Abundance: convert from proportion to percentage, and round to integer
+# Note: Trace observations (below 1%) rounded up to 1%
+abundance_rel_df$response <- abundance_rel_df$X0*100
+abundance_rel_df[abundance_rel_df$response < 1 & abundance_rel_df$response != 0, 'response'] <- 1
+abundance_rel_df$response <- round(abundance_rel_df$response)
+
+rel_abundance_wide <- dcast(abundance_rel_df, Treatment+ Plot.Number + Quadrat.Number + Fenced + Gap + Life.Form ~ Year, value.var="response")
+rel_abundance_wide
+
+# Rename 
+names(rel_abundance_wide)[names(rel_abundance_wide)=="0"] <- "X0"
+names(rel_abundance_wide)[names(rel_abundance_wide)=="3"] <- "X3"
+names(rel_abundance_wide)[names(rel_abundance_wide)=="6"] <- "X6"
+
+abundance_wide_df <- dcast(abundance_df, Treatment+ Plot.Number + Quadrat.Number + Fenced + Gap + Life.Form ~ Year, value.var="X0")
+abundance_wide_df
+# Rename 
+names(abundance_wide_df)[names(abundance_wide_df)=="0"] <- "X0"
+names(abundance_wide_df)[names(abundance_wide_df)=="3"] <- "X3"
+names(abundance_wide_df)[names(abundance_wide_df)=="6"] <- "X6"
+
+# rename abundance_total
+names(abundance_totals)[names(abundance_totals)=="X0"] <- "Total_X0"
+names(abundance_totals)[names(abundance_totals)=="X3"] <- "Total_X3"
+names(abundance_totals)[names(abundance_totals)=="X6"] <- "Total_X6"
+
+abundance_df1 <- abundance_wide_df %>% left_join(abundance_totals[c("Plot.Number", "Quadrat.Number", "Total_X0","Total_X3","Total_X6")], by=c("Plot.Number","Quadrat.Number"))
+
+
+abundance_df1 <- ddply(abundance_df1,.(Plot.Number, Quadrat.Number),transform,sum=length(Life.Form))
+```
+
+## Data preparation
+```{r data, echo=TRUE}
+rel_abundance_wide$Y0.Y3.Difference <- rel_abundance_wide$X3 - rel_abundance_wide$X0
+rel_abundance_wide$Y3.Y6.Difference <- rel_abundance_wide$X6 - rel_abundance_wide$X3
+rel_abundance_wide$Y0.Y6.Difference <- rel_abundance_wide$X6 - rel_abundance_wide$X0
+
+rel_abundance_wide$Y0.Y3.Abs_Difference <- rel_abundance_wide$Y0.Y3.Difference + abs(min(rel_abundance_wide$Y0.Y3.Difference)) + 1
+rel_abundance_wide$Y3.Y6.Abs_Difference <- rel_abundance_wide$Y3.Y6.Difference + abs(min(rel_abundance_wide$Y3.Y6.Difference)) + 1
+rel_abundance_wide$Y0.Y6.Abs_Difference <- rel_abundance_wide$Y0.Y6.Difference + abs(min(rel_abundance_wide$Y0.Y6.Difference)) + 1
+```
+
+
+# modelling
+```{r 0to3_gaussian, echo=True}
+# guassian modeling
+# model using gaussian
+Y0.Y3.guas.model=fitdist(rel_abundance_wide$Y0.Y3.Difference, "norm")
+Y0.Y3.guas.model
+guas.mean=Y0.Y3.guas.model$estimate[1]
+guas.sd =Y0.Y3.guas.model$estimate[2]
+plot(Y0.Y3.guas.model)
+
+n=length(rel_abundance_wide$Y0.Y3.Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(rel_abundance_wide$Y0.Y3.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y0.Y3.guass.model = glm(Y0.Y3.Difference ~ Treatment+Life.Form + Gap + Fenced, family = gaussian, data = rel_abundance_wide)
+summary(Y0.Y3.guass.model)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model)
+
+Y0.Y3.pure.guass.model <- glm(Y0.Y3.Difference ~ 1, family = gaussian, data = rel_abundance_wide)
+anova( Y0.Y3.pure.guass.model, Y0.Y3.guass.model, test = "F")
+# In model fitting, the treatment radial, gap, fenced are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = 2.026e-09
+```
+
+
+```{r model_selection_guassian, echo=TRUE}
+Y0.Y3.guass.model_selected <-step(Y0.Y3.guass.model, scope=~.)
+summary(Y0.Y3.guass.model_selected)
+# only treatment, gap and fenced are significant, all other factors are not significant in predicting the yr_relative_abundance_difference, AIC decreases from 15966 to 15953
+anova(Y0.Y3.guass.model_selected, Y0.Y3.pure.guass.model,test = "F")
+# the selected model states that the treatment, life.form, gap and fenced is related to the relative abundance
+#Pr(>F) = < 2.2e-16
+```
+
+```{r 0to3_gaussian_log, echo=True}
+# guassian modeling
+# model using gaussian
+Y0.Y3.guas.model.log=fitdist(log(rel_abundance_wide$Y0.Y3.Abs_Difference), "norm")
+Y0.Y3.guas.model.log
+guas.mean=Y0.Y3.guas.model.log$estimate[1]
+guas.sd =Y0.Y3.guas.model.log$estimate[2]
+plot(Y0.Y3.guas.model.log)
+
+n=length(log(rel_abundance_wide$Y0.Y3.Abs_Difference))
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(log(rel_abundance_wide$Y0.Y3.Abs_Difference)), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y0.Y3.guass.model = glm(log(Y0.Y3.Abs_Difference) ~ Treatment+Life.Form + Gap + Fenced, family = gaussian, data = rel_abundance_wide)
+summary(Y0.Y3.guass.model)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.guass.model)
+Y0.Y3.pure.guass.model <- glm(log(Y0.Y3.Abs_Difference) ~ 1, family = gaussian, data = rel_abundance_wide)
+anova( Y0.Y3.pure.guass.model, Y0.Y3.guass.model, test = "F")
+# In model fitting, the treatment radial, gap, fenced are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = 2.026e-09
+```
+
+
+```{r glm_fit_gamma, echo=TRUE}
+Y0.Y3.gamma.model1=fitdist(rel_abundance_wide$Y0.Y3.Abs_Difference, "gamma")
+Y0.Y3.gamma.model1
+gamma.alpha=Y0.Y3.gamma.model1$estimate[1]
+gamma.beta =Y0.Y3.gamma.model1$estimate[2]
+plot(Y0.Y3.gamma.model1)
+
+n=length(rel_abundance_wide$Y0.Y3.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(rel_abundance_wide$Y0.Y3.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+Y0.Y3.gamma.model2 = glm(Y0.Y3.Abs_Difference ~ Treatment+Life.Form + Gap + Fenced, family = Gamma, data = rel_abundance_wide)
+summary(Y0.Y3.gamma.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.gamma.model2)
+```
+
+```{r model_selection_gamma, echo=TRUE}
+Y0.Y3.gamma.model_selected <-step(Y0.Y3.gamma.model2, scope=~.)
+summary(Y0.Y3.gamma.model_selected)
+# AIC decrease from 16672 to 16645
+Y0.Y3.empty_gamma_model <- glm(Y0.Y3.Abs_Difference ~ 1, family = Gamma, data = rel_abundance_wide)
+anova(Y0.Y3.gamma.model_selected, Y0.Y3.empty_gamma_model, test = "F")
+# the model is significant at 5%, suggest that the coefficient for treatment, gap, lifeform, fence are not zero, Pr(>F) = < 2.2e-16
+```
+
+
+```{r fit_poisson_model, echo=TRUE}
+Y0.Y3.poisson.model1=fitdist(rel_abundance_wide$Y0.Y3.Abs_Difference, "pois")
+Y0.Y3.poisson.model1
+poisson.lambda=Y0.Y3.poisson.model1$estimate
+plot(Y0.Y3.poisson.model1)
+
+n=length(rel_abundance_wide$Y0.Y3.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(rel_abundance_wide$Y0.Y3.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+
+Y0.Y3.poisson.model2 = glm(Y0.Y3.Abs_Difference~ Treatment  + Gap + Life.Form + Fenced, family = poisson, data = rel_abundance_wide)
+summary(Y0.Y3.poisson.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.poisson.model2)
+```
+
+```{r model_selection_poisson, echo=TRUE}
+Y0.Y3.poisson.model_selected <-step(Y0.Y3.poisson.model2, scope=~.)
+summary(Y0.Y3.poisson.model_selected)
+#AIC decrease from 16103.11 to 16103
+Y0.Y3.empty_poisson_model <- glm(Y0.Y3.Abs_Difference ~ 1, family = poisson, data = rel_abundance_wide)
+anova(Y0.Y3.poisson.model_selected, Y0.Y3.empty_poisson_model, test = "Chi")
+# the model is significant at 5%, suggest that the coefficient for treatment, lifeform,gap and fenced are not zero, Pr(>Chi) = < 2.2e-16
+```
+
+
+```{r fit_negative_binomial, echo=TRUE}
+#Negative Binomial GLM
+
+#visualisation and test if the data is negative binomial
+Y0.Y3.nb.model1=fitdist(rel_abundance_wide$Y0.Y3.Abs_Difference, "nbinom")
+Y0.Y3.nb.model1
+nb.size=Y0.Y3.nb.model1$estimate[1]
+nb.mu = Y0.Y3.nb.model1$estimate[2]
+nb.prob=nb.size/(nb.size+nb.mu) 
+plot(Y0.Y3.nb.model1)
+
+n=length(rel_abundance_wide$Y0.Y3.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(rel_abundance_wide$Y0.Y3.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+Y0.Y3.nb.model2 = glm.nb(Y0.Y3.Abs_Difference~ Treatment  + Gap + Life.Form + Fenced, data = rel_abundance_wide)
+summary(Y0.Y3.nb.model2 )
+par(mfrow = c(2,2))
+plot(Y0.Y3.nb.model2)
+```
+
+```{r model_selection_negative_binomial, echo=TRUE}
+Y0.Y3.nb.model_selected <-step(Y0.Y3.nb.model2, scope=~.)
+summary(Y0.Y3.nb.model_selected)
+# AIC decrease from 16103.12 to 16105
+Y0.Y3.empty_nb_model <- glm.nb(Y0.Y3.Abs_Difference ~ 1,  data = rel_abundance_wide)
+anova(Y0.Y3.nb.model_selected, Y0.Y3.empty_nb_model, test = "LR")
+# the model is significant at 5%, suggest that the coefficient for treatment,gap,fenced and life.form are not zero, Pr(>Chi) = 0
+```
+
+**select model based on the AIC, we will choose the guassian model, since it gives the lowest AIC of 15953**
+
+
+
+## diffrent modeling via prediction
+```{r model_prediction_gaussian, echo=TRUE}
+Y0.Y3.guass.model2 = glm(X3 ~ X0 + Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = rel_abundance_wide)
+summary(Y0.Y3.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model2)
+
+rel_abundance_wide$X3 = rel_abundance_wide$X3 + abs(min(rel_abundance_wide$X3)) + 1
+Y0.Y3.gamma.model3 = glm(X3  ~ X0 + Treatment  + Gap + Life.Form + Fenced, family = Gamma(link = "log"), data = rel_abundance_wide)
+summary(Y0.Y3.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.gamma.model3)
+
+Y0.Y3.poisson.model3 = glm(X3 ~ X0 + Treatment  + Gap + Life.Form + Fenced, family = poisson, data = rel_abundance_wide)
+summary(Y0.Y3.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model3)
+```
+
+```{r model_selection_prediction_gaussian, echo=TRUE}
+Y0.Y3.select_guass.model2 <- step(Y0.Y3.guass.model2, scope=~.)
+summary(Y0.Y3.select_guass.model2)
+
+Y0.Y3.select_gamma.model3 <- step(Y0.Y3.gamma.model3, scope=~.)
+summary(Y0.Y3.select_gamma.model3)
+
+Y0.Y3.select_poisson.model3 <- step(Y0.Y3.poisson.model3, scope=~.)
+summary(Y0.Y3.select_poisson.model3)
+# according to the AIC, we will choose the gamma model, since it has the lowest AIC of 11660,
+#gap, fence, X0, Life.form are all significant, although treatment is not significant in this case
+```
+
+```{r model_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.guass.model2 = glm(log(X3+1) ~ log((X0+1)/offset(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment + Life.Form + Gap  + Fenced, family = gaussian, data = abundance_df1)
+summary(Y0.Y3.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.guass.model2)
+
+rel_abundance_wide$X3 = log(rel_abundance_wide$X3+ 1)
+Y0.Y3.guass.model3 = glm(log(X3+1) ~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = abundance_df1)
+summary(Y0.Y3.guass.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.guass.model3)
+# first gaussian model fits better
+
+
+Y0.Y3.gamma.model3 = glm(log(X3+2) ~ log(X0+2)-offset(log(Total_X0+2*sum)) + offset(log(Total_X3+2*sum))+ Treatment  + Gap + Life.Form + Fenced, family = Gamma(link = "log"), data = abundance_df1)
+summary(Y0.Y3.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.gamma.model3)
+
+Y0.Y3.poisson.model3 = glm(log(X3+1)~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced, family = poisson, data = abundance_df1)
+summary(Y0.Y3.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model3)
+
+Y0.Y3.poisson.model4 = glm(X3~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3))+ Treatment  + Gap + Life.Form + Fenced, family = poisson, data = abundance_df1)
+summary(Y0.Y3.poisson.model4)
+par(mfrow = c(2,2))
+
+plot(Y0.Y3.poisson.model4)
+```
+
+```{r model_selection_prediction_gaussian_log, echo=TRUE}
+Y0.Y3.select_guass.model2 <- step(Y0.Y3.guass.model2, scope=~.)
+summary(Y0.Y3.select_guass.model2)
+# AIC: 4396.31 to 4395.1
+
+Y0.Y3.select_gamma.model3 <- step(Y0.Y3.gamma.model3, scope=~.)
+summary(Y0.Y3.select_gamma.model3)
+# AIC: 6435 to 6435
+
+Y0.Y3.select_poisson.model3 <- step(Y0.Y3.poisson.model3, scope=~.)
+summary(Y0.Y3.select_poisson.model3)
+# AIC: inf to inf
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 4395.1,
+#gap, X0,fenced and lifeform are all significant, also both of them has a positive effect on the relative abundance for yr3
+```
+
+```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
+rel_abundance_wide$X3 = log(rel_abundance_wide$X3+ 1)
+Y0.Y3.glmer.guass1= glmer(log(X3+1) ~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number), family = gaussian, data = abundance_df1)
+summary(Y0.Y3.glmer.guass1)
+print(Y0.Y3.glmer.guass1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y0.Y3.glmer.guass1)
+plot(Y0.Y3.glmer.guass1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=rel_abundance_wide$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+
+par(mfrow=c(3,4))
+for(i in 1:length(unique(rel_abundance_wide$Plot.Number))){
+plot(resid(Y0.Y3.glmer.guass1,type="pearson")[rel_abundance_wide$Plot.Number==i]~predict(Y0.Y3.glmer.guass1)[rel_abundance_wide$Plot.Number==i],pch=16,ylim=c(-4,4),main=paste("Plot",i),xlab="Fitted values",ylab="Standardised residuals")
+lines(x=c(-1000,1000),y=c(0,0))
+}
+par(mfrow=c(1,1))
+qqnorm(resid(Y0.Y3.glmer.guass1),pch=16,col=rel_abundance_wide$Plot.Number)
+qqline(resid(Y0.Y3.glmer.guass1))
+
+
+anova(Y0.Y3.glmer.guass1, Y0.Y3.select_guass.model3)
+
+
+Y0.Y3.glmer.guass2= glmer(log(X3+1) ~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment + Gap + Life.Form + Fenced + (1|Plot.Number) +(log(X0 + 1)|Plot.Number) , family = gaussian, data = abundance_df1)
+summary(Y0.Y3.glmer.guass2)
+par(mfrow = c(2,2))
+plot(Y0.Y3.glmer.guass2)
+anova(Y0.Y3.glmer.guass1, Y0.Y3.glmer.guass2)
+
+Y0.Y3.glmer.guass3= glmer(log(X3+1) ~ log(X0+1)-offset(log(Total_X0+sum)) + offset(log(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number) + (log(X0 + 1)|Plot.Number) + (1|Quadrat.Number), family = gaussian, data = abundance_df1)
+summary(Y0.Y3.glmer.guass3)
+print(Y0.Y3.glmer.guass3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y0.Y3.glmer.guass3)
+anova(Y0.Y3.glmer.guass3, Y0.Y3.glmer.guass2)
+
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 4395.1,
+#gap, X0,fenced and lifeform are all significant, also both of them has a positive effect on the relative abundance for yr3
+```
+
+
+**therefore, choosing the prediction model, which take account of the difference of the abundance, and using the guassian model**
+
+
+
+
+
+
+##Yr3 to Yr6
+# modelling
+```{r gaussian_Y36, echo=True}
+# guassian modeling
+# model using gaussian
+Y3.Y6.guas.model=fitdist(rel_abundance_wide$Y3.Y6.Difference, "norm")
+Y3.Y6.guas.model
+guas.mean=Y3.Y6.guas.model$estimate[1]
+guas.sd =Y3.Y6.guas.model$estimate[2]
+plot(Y3.Y6.guas.model)
+
+n=length(rel_abundance_wide$Y3.Y6.Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(rel_abundance_wide$Y3.Y6.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y3.Y6.guass.model = glm(Y3.Y6.Difference ~ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = rel_abundance_wide)
+summary(Y3.Y6.guass.model)
+par(mfrow = c(2,2))
+
+plot(Y3.Y6.guass.model)
+Y3.Y6.pure.guass.model <- glm(Y3.Y6.Difference ~ 1, family = gaussian, data = rel_abundance_wide)
+anova(Y3.Y6.pure.guass.model, Y3.Y6.guass.model, test = "F")
+# In model fitting, the treatment radial, gap,fenced are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = < 2.2e-16
+```
+
+
+```{r model_selection_guassian_Y36, echo=TRUE}
+Y3.Y6.guass.model_selected <-step(Y3.Y6.guass.model, scope=~.)
+summary(Y3.Y6.guass.model_selected)
+# only treatment and fenced, lifeform are significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 15638.58 to 15639
+anova(Y3.Y6.guass.model_selected, Y3.Y6.pure.guass.model,test = "F")
+# the selected model has the same result as the unselected models, so the coefficients do not change
+#Pr(>F) = < 2.2e-16
+```
+
+
+```{r glm_fit_gamma_Y36, echo=TRUE}
+Y3.Y6.gamma.model1=fitdist(rel_abundance_wide$Y3.Y6.Abs_Difference, "gamma")
+Y3.Y6.gamma.model1
+gamma.alpha=Y3.Y6.gamma.model1$estimate[1]
+gamma.beta =Y3.Y6.gamma.model1$estimate[2]
+plot(Y3.Y6.gamma.model1)
+
+n=length(rel_abundance_wide$Y3.Y6.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(rel_abundance_wide$Y3.Y6.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+Y3.Y6.gamma.model2 = glm(Y3.Y6.Abs_Difference ~ Treatment  + Gap + Life.Form + Fenced, family = Gamma, data = rel_abundance_wide)
+summary(Y3.Y6.gamma.model2)
+par(mfrow = c(2,2))
+plot(Y3.Y6.gamma.model2)
+# the model fit is worse than the gaussian fit, from the qq-plot
+```
+
+```{r model_selection_gamma_Y36, echo=TRUE}
+Y3.Y6.gamma.model_selected <-step(Y3.Y6.gamma.model2, scope=~.)
+summary(Y3.Y6.gamma.model_selected)
+# AIC decrease from 16173.62 to 16174
+Y3.Y6.empty_gamma_model <- glm(Y3.Y6.Abs_Difference ~ 1, family = Gamma, data = rel_abundance_wide)
+anova(Y3.Y6.gamma.model_selected, Y3.Y6.empty_gamma_model, test = "F")
+# the model is significant at 5%, suggest that the coefficient for treatment, gap, fenced and lifeform are not zero, Pr(>F) = < 2.2e-16
+```
+
+
+```{r fit_poisson_model_Y36, echo=TRUE}
+Y3.Y6.poisson.model1=fitdist(rel_abundance_wide$Y3.Y6.Abs_Difference, "pois")
+Y3.Y6.poisson.model1
+poisson.lambda=Y3.Y6.poisson.model1$estimate
+plot(Y3.Y6.poisson.model1)
+
+n=length(rel_abundance_wide$Y3.Y6.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(rel_abundance_wide$Y3.Y6.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+
+Y3.Y6.poisson.model2 = glm(Y3.Y6.Abs_Difference~ Treatment  + Gap + Life.Form + Fenced, family = poisson, data = rel_abundance_wide)
+summary(Y3.Y6.poisson.model2)
+par(mfrow = c(2,2))
+plot(Y3.Y6.poisson.model2)
+```
+
+```{r model_selection_poisson_Y36, echo=TRUE}
+Y3.Y6.poisson.model_selected <-step(Y3.Y6.poisson.model2, scope=~.)
+summary(Y3.Y6.poisson.model_selected)
+#AIC decrease from 15746.52 to 15747
+Y3.Y6.empty_poisson_model <- glm(Y3.Y6.Abs_Difference ~ 1, family = poisson, data = rel_abundance_wide)
+anova(Y3.Y6.poisson.model_selected, Y3.Y6.empty_poisson_model, test = "Chi")
+# the model is significant at 5%, suggest that the coefficient for treatment, gap,fenced, and lifeform are not zero, Pr(>Chi) = < 2.2e-16
+```
+
+**therefore, according to AIC, we will choose gaussian model, since it has the lowest AIC of 15639**
+
+
+## diffrent modeling via prediction
+```{r model_prediction_gaussian_log_Y36, echo=TRUE}
+Y3.Y6.guass.model2 = glm(log(X6+1) ~ log((X3+1)/offset(Total_X3+sum)) + offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = abundance_df1)
+summary(Y3.Y6.guass.model2)
+par(mfrow = c(2,2))
+plot(Y3.Y6.guass.model2)
+
+
+Y3.Y6.gamma.model3 = glm(log(X6+2) ~ log(X3+2)-offset(log(Total_X3+2*sum)) + offset(log(Total_X6+2*sum))+ Treatment  + Gap + Life.Form + Fenced, family = Gamma(link = "log"), data = abundance_df1)
+summary(Y3.Y6.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y3.Y6.gamma.model3)
+
+Y3.Y6.poisson.model3 = glm(log(X6+1)~ log(X3+1)-offset(log(Total_X3+sum)) + offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced, family = poisson, data = abundance_df1)
+summary(Y3.Y6.poisson.model3)
+par(mfrow = c(2,2))
+
+plot(Y3.Y6.poisson.model3)
+```
+
+
+```{r model_selection_prediction_gaussian_Y36, echo=TRUE}
+Y3.Y6.select_guass.model2 <- step(Y3.Y6.guass.model2, scope=~.)
+summary(Y3.Y6.select_guass.model2)
+#AIC: 4565.66 - 4564.3
+
+Y3.Y6.select_gamma.model3 <- step(Y3.Y6.gamma.model3, scope=~.)
+summary(Y3.Y6.select_gamma.model3)
+#AIC: 5836.39 - 5835.4
+
+
+Y3.Y6.select_poisson.model3 <- step(Y3.Y6.poisson.model3, scope=~.)
+summary(Y3.Y6.select_poisson.model3)
+#AIC: Inf - Inf
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 4564.3,
+#gap, fenced, X0, lifeform are all significant,both treatment are significant in this case,  also both of them has a positive effect on the relative abundance for yr3
+```
+
+
+```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
+Y3.Y6.glmer.guass1= glmer(log(X6+1) ~ log(X3+1)-offset(log(Total_X3+sum)) + offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number), family = gaussian, data = abundance_df1)
+summary(Y3.Y6.glmer.guass1)
+print(Y3.Y6.glmer.guass1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y3.Y6.glmer.guass1)
+plot(Y3.Y6.glmer.guass1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=rel_abundance_wide$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+
+par(mfrow=c(3,4))
+for(i in 1:length(unique(rel_abundance_wide$Plot.Number))){
+plot(resid(Y3.Y6.glmer.guass1,type="pearson")[rel_abundance_wide$Plot.Number==i]~predict(Y3.Y6.glmer.guass1)[rel_abundance_wide$Plot.Number==i],pch=16,ylim=c(-4,4),main=paste("Plot",i),xlab="Fitted values",ylab="Standardised residuals")
+lines(x=c(-1000,1000),y=c(0,0))
+}
+
+qqnorm(resid(Y3.Y6.glmer.guass1),pch=16,col=rel_abundance_wide$Plot.Number)
+qqline(resid(Y3.Y6.glmer.guass1))
+
+
+Y3.Y6.glmer.guass3= glmer(log(X3+1) ~ llog(X6+1) ~ log(X3+1)-offset(log(Total_X3+sum)) + offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number) + (log(X0 + 1)|Plot.Number) + (1|Quadrat.Number), family = gaussian, data = abundance_df1)
+summary(Y3.Y6.glmer.guass3)
+print(Y3.Y6.glmer.guass3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y3.Y6.glmer.guass3)
+anova(Y3.Y6.glmer.guass3, Y3.Y6.glmer.guass1)
+
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 4395.1,
+#gap, X0,fenced and lifeform are all significant, also both of them has a positive effect on the relative abundance for yr3
+```
+
+**From the result, we know that we need to use the prediction model as the final model, since it gives significantly lower AIC than the general difference model, and the prediction model should be gaussian model**
+
+
+
+
+
+
+
+
+##Yr0 to Yr6
+# modelling
+```{r gaussian_Y06, echo=True}
+# guassian modeling
+# model using gaussian
+Y0.Y6.guas.model=fitdist(rel_abundance_wide$Y0.Y6.Difference, "norm")
+Y0.Y6.guas.model
+guas.mean=Y0.Y6.guas.model$estimate[1]
+guas.sd =Y0.Y6.guas.model$estimate[2]
+plot(Y0.Y6.guas.model)
+
+n=length(rel_abundance_wide$Y0.Y6.Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(rel_abundance_wide$Y0.Y6.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main = 'Q-Q plot Guassian')
+abline(0,1,col="red")
+
+Y0.Y6.guass.model = glm(Y0.Y6.Difference ~ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = rel_abundance_wide)
+summary(Y0.Y6.guass.model)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.guass.model)
+Y0.Y6.pure.guass.model <- glm(Y0.Y6.Difference ~ 1, family = gaussian, data = rel_abundance_wide)
+anova(Y0.Y6.pure.guass.model, Y0.Y6.guass.model, test = "F")
+# In model fitting, the intercept, gap and some quadrates number are statistically significant, but when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = < 2.2e-16
+```
+
+
+```{r model_selection_guassian_Y06, echo=TRUE}
+Y0.Y6.guass.model_selected <-step(Y0.Y6.guass.model, scope=~.)
+summary(Y0.Y6.guass.model_selected)
+# only treatment radial is significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 15834.2 to 15834
+anova(Y0.Y6.guass.model_selected, Y0.Y6.pure.guass.model,test = "F")
+# the selected model states that the treatment, fenced, gap and lifeform are related to the relative abundance, although coefficient for both treatments are not significant at 5% significance level
+#Pr(>F) < 2.2e-16
+```
+
+
+
+```{r glm_fit_gamma_Y06, echo=TRUE}
+Y0.Y6.gamma.model1=fitdist(rel_abundance_wide$Y0.Y6.Abs_Difference, "gamma")
+Y0.Y6.gamma.model1
+gamma.alpha=Y0.Y6.gamma.model1$estimate[1]
+gamma.beta =Y0.Y6.gamma.model1$estimate[2]
+plot(Y0.Y6.gamma.model1)
+
+n=length(rel_abundance_wide$Y0.Y6.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(rel_abundance_wide$Y0.Y6.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot gamma')
+abline(0,1,col="red")
+
+
+Y0.Y6.gamma.model2 = glm(Y0.Y6.Abs_Difference ~ Treatment  + Gap + Life.Form + Fenced, family = Gamma, data = rel_abundance_wide)
+summary(Y0.Y6.gamma.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.gamma.model2)
+
+```
+
+```{r model_selection_gamma_Y06, echo=TRUE}
+Y0.Y6.gamma.model_selected <-step(Y0.Y6.gamma.model2, scope=~.)
+summary(Y0.Y6.gamma.model_selected)
+# AIC decrease from 16484.58 to 16485
+Y0.Y6.empty_gamma_model <- glm(Y0.Y6.Abs_Difference ~ 1, family = Gamma, data = rel_abundance_wide)
+anova(Y0.Y6.gamma.model_selected, Y0.Y6.empty_gamma_model, test = "F")
+# the model is significant at 5%, suggest that the coefficient for treatment is not zero, Pr(>F) < 2.2e-16
+```
+
+
+```{r fit_poisson_model_Y06, echo=TRUE}
+Y0.Y6.poisson.model1=fitdist(rel_abundance_wide$Y0.Y6.Abs_Difference, "pois")
+Y0.Y6.poisson.model1
+poisson.lambda=Y0.Y6.poisson.model1$estimate
+plot(Y0.Y6.poisson.model1)
+
+n=length(rel_abundance_wide$Y0.Y6.Abs_Difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qpois(samp.pct,poisson.lambda), y=sort(rel_abundance_wide$Y0.Y6.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Poisson')
+abline(0,1,col="red")
+
+
+
+Y0.Y6.poisson.model2 = glm(Y0.Y6.Abs_Difference~ Treatment  + Gap + Life.Form + Fenced, family = poisson, data = rel_abundance_wide)
+summary(Y0.Y6.poisson.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.poisson.model2)
+```
+
+```{r model_selection_poisson_Y06, echo=TRUE}
+Y0.Y6.poisson.model_selected <-step(Y0.Y6.poisson.model2, scope=~.)
+summary(Y0.Y6.poisson.model_selected)
+#AIC decrease from 15989 to 15989
+Y0.Y6.empty_poisson_model <- glm(Y0.Y6.Abs_Difference ~ 1, family = poisson, data = rel_abundance_wide)
+anova(Y0.Y6.poisson.model_selected, Y0.Y6.empty_poisson_model, test = "Chi")
+# the model is significant at 5%, suggest that the coefficient for treatment is not zero at 5% significance level, Pr(>F) < 2.2e-16
+```
+
+**according the AIC, we will choose the gaussian model, since it has the lowest AIC value of 15834**
+
+
+
+
+## diffrent modeling via prediction
+```{r model_prediction_gaussian_log_Y06, echo=TRUE}
+Y0.Y6.guass.model2 = glm(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) + offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = abundance_df1)
+summary(Y0.Y6.guass.model2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.guass.model2)
+
+
+Y0.Y6.gamma.model3 = glm(log(X6+2) ~ log(X0+2)-offset(log(Total_X0+2*sum)) + offset(log(Total_X6+2*sum))+ Treatment  + Gap + Life.Form + Fenced, family = Gamma(link = "log"), data = abundance_df1)
+summary(Y0.Y6.gamma.model3)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.gamma.model3)
+
+```
+
+
+```{r model_selection_prediction_gaussian_Y06, echo=TRUE}
+Y0.Y6.select_guass.model2 <- step(Y0.Y6.guass.model2, scope=~.)
+summary(Y0.Y6.select_guass.model2)
+#AIC: 4731.52 - 4729.9
+
+Y0.Y6.select_gamma.model3 <- step(Y0.Y6.gamma.model3, scope=~.)
+summary(Y0.Y6.select_gamma.model3)
+#AIC: 5799.78 - 5799.8
+
+
+# according to the AIC, we will choose the gaussian model, since it has the lowest AIC of 4730,
+#gap, fenced, X0 and lifeform are all significant,both treatment are significant in this case, also both of them has a positive effect on the relative abundance for yr6
+```
+
+
+```{r model_prediction_gaussian_log_Y036, echo=TRUE}
+Y0.Y6.guass.model3 = glm(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) + log((X3+1)/offset(Total_X3+sum)) +  offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced, family = gaussian, data = abundance_df1)
+summary(Y0.Y6.guass.model3)
+par(mfrow = c(2,2))
+plot(Y0.Y6.guass.model3)
+
+
+Y0.Y6.gamma.model4 = glm(log(X6+2) ~ log(X0+2)-offset(log(Total_X0+2*sum)) + log(X3+2)-offset(log(Total_X3+2*sum)) +  offset(log(Total_X6+2*sum))+ Treatment  + Gap + Life.Form + Fenced, family = Gamma(link = "log"), data = abundance_df1)
+summary(Y0.Y6.gamma.model4)
+par(mfrow = c(2,2))
+
+plot(Y0.Y6.gamma.model4)
+
+```
+
+
+```{r model_selection_prediction_gaussian_Y036, echo=TRUE}
+Y0.Y6.select_guass.model3 <- step(Y0.Y6.guass.model3, scope=~.)
+summary(Y0.Y6.select_guass.model3)
+#AIC: 4477.04 - 4475.2
+
+Y0.Y6.select_gamma.model4 <- step(Y0.Y6.gamma.model4, scope=~.)
+summary(Y0.Y6.select_gamma.model4)
+#AIC: 7353.3 - 7351.7
+
+
+# according to the AIC, we will choose the latter gaussian model, that is the one also included the X3 data, since it has the lowest AIC of 4475.2,
+#gap, fenced, X0, X3 and lifeform are all significant, both of them has a positive effect on the relative abundance for yr6
+```
+
+
+**according to the AIC, we will choose the gaussian prediction model with X3 data included. it has the lowest AIC of 4475.2**
+
+
+```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
+Y0.Y6.glmer.guass1= glmer(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) + log((X3+1)/offset(Total_X3+sum)) +  offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number), family = gaussian, data = abundance_df1)
+summary(Y0.Y6.glmer.guass1)
+print(Y0.Y6.glmer.guass1, correlation=TRUE)
+
+#diagnosis plots
+plot(Y0.Y6.glmer.guass1)
+plot(Y0.Y6.glmer.guass1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=rel_abundance_wide$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
+
+par(mfrow=c(3,4))
+for(i in 1:length(unique(rel_abundance_wide$Plot.Number))){
+plot(resid(Y0.Y6.glmer.guass1,type="pearson")[rel_abundance_wide$Plot.Number==i]~predict(Y0.Y6.glmer.guass1)[rel_abundance_wide$Plot.Number==i],pch=16,ylim=c(-4,4),main=paste("Plot",i),xlab="Fitted values",ylab="Standardised residuals")
+lines(x=c(-1000,1000),y=c(0,0))
+}
+par(mfrow=c(1,1))
+qqnorm(resid(Y0.Y6.glmer.guass1),pch=16,col=rel_abundance_wide$Plot.Number)
+qqline(resid(Y0.Y6.glmer.guass1))
+
+Y0.Y6.glmer.guass2= glmer(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) +log((X3+1)/offset(Total_X3+sum))+ Treatment  + Gap + Life.Form + Fenced + offset(log(Total_X6+sum))+ (1|Plot.Number) + (log(X0 + 1)|Plot.Number) +(log(X3 + 1)|Plot.Number) , family = gaussian, data = abundance_df1)
+summary(Y0.Y6.glmer.guass2)
+par(mfrow = c(2,2))
+plot(Y0.Y6.glmer.guass2)
+anova(Y0.Y6.glmer.guass1, Y0.Y6.glmer.guass2)
+
+Y0.Y6.glmer.guass3= glmer(log(X6+1) ~ log((X0+1)/offset(Total_X0+sum)) + log((X3+1)/offset(Total_X3+sum)) +  offset(log(Total_X6+sum))+ Treatment  + Gap + Life.Form + Fenced + (1|Plot.Number) +(log(X3 + 1)|Plot.Number) + (log(X0 + 1)|Plot.Number)+ (1|Quadrat.Number), family = gaussian, data = abundance_df1)
+summary(Y0.Y6.glmer.guass3)
+print(Y0.Y6.glmer.guass3, correlation=TRUE)
+par(mfrow = c(2,2))
+plot(Y0.Y6.glmer.guass3)
+anova(Y0.Y6.glmer.guass3, Y0.Y6.glmer.guass1)
+
+
+# according to the Chi-sq value, we will select the random effect (1|plot), (1|quadrat), (log(X0+1)|plot), (log(X3+1)|plot)
+```
