@@ -14,8 +14,10 @@ library(lme4)
 library(ggplot2)
 ```
 
+
 ## Prep
 ```{r}
+# Diversity
 diversity_df <- read.csv('../dataset/tables/species_divers_quadrats.csv')
 diversity_df_plot <- read.csv('../contingency tables/output/diversity/species_divers_plots.csv')
 diversity_df_treat <- read.csv('../contingency tables/output/diversity/species_divers_treatments.csv')
@@ -24,19 +26,48 @@ diversity_df <- diversity_df %>% drop_na(X0, X3, X6)
 
 div_fenced_both_df <- diversity_df %>% group_by(Plot.Number) %>% filter_at(vars(Fenced), any_vars(. %in% c("True")))
 div_plot_fenced_both <- unique(div_fenced_both_df$Plot.Number)
-div_fenced_both_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(. %in% div_plot_fenced_both))
-div_fenced_only_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(!. %in% div_plot_fenced_both))
+
+# Richness
+richness_df_plot <- read.csv('../contingency tables/output/richness/species_richness_plots.csv')
+richness_df_quad <- read.csv('../contingency tables/output/richness/species_richness_quadrats.csv')
+richness_df_treat <- read.csv('../contingency tables/output/richness/species_richness_treatments.csv')
+
+richness_df_plot <- richness_df_plot %>% drop_na(X0, X3, X6)
+
+# Abundance
+abundance_df_plot <- read.csv('../contingency tables/output/abundance/lf_abund_plot.csv')
+abundance_df_quad <- read.csv('../contingency tables/output/abundance/lf_abund_quadrats.csv')
+abundance_df_treat <- read.csv('../contingency tables/output/abundance/lf_abund_treatment.csv')
+
+# abundance_df_treat <- abundance_df_treat %>% 
 ```
 
 ## Exploration
+
+Diversity - By treatment
 ```{r}
-df_copy <- diversity_df
+div_treat_cp <- diversity_df_treat %>% pivot_longer(c(4:6), names_to="Year", values_to="val")
+panel_names <- as_labeller(c())
+p <- ggplot(data=div_treat_cp, aes(x=Year, y=val, color=Fenced, shape=Gap, group=interaction(Fenced,Gap))) +
+      geom_line() + geom_point() +
+      facet_wrap(~Treatment, labeller = panel_names) +
+      theme_bw() +
+      theme(strip.background = element_blank()) +
+      labs(title="")
+p
+```
+
+Diversity - By plot
+```{r}
+# df_copy <- diversity_df
+div_fenced_only_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(!. %in% div_plot_fenced_both))
 div_fenced_only_df <- div_fenced_only_df %>% pivot_longer(c(6:8), names_to="Year", values_to="val")
 p <- ggplot(data=div_fenced_only_df, aes(x=Year, y=val, color=Gap, group=Quadrat.Number)) +
       geom_line() 
 p + facet_wrap(~Plot.Number)
 ```
 
+Diversity - Plots with bothe fenced and unfenced
 ```{r}
 div_fenced_both_df <- diversity_df %>% filter_at(vars(Plot.Number), any_vars(. %in% div_plot_fenced_both))
 div_fenced_both_df <- div_fenced_both_df %>% pivot_longer(c(6:8), names_to="Year", values_to="val")
@@ -44,9 +75,57 @@ div_fenced_both_df <- div_fenced_both_df %>% pivot_longer(c(6:8), names_to="Year
 panel_names <- as_labeller(c(`7`="Plot 7 Radial", `9`="Plot 9 Radial", `10`="Plot 10 Gap", `12`="Plot 12 Gap"))
 p <- ggplot(data=div_fenced_both_df, aes(x=Year, y=val, color=Fenced, shape=Gap, group=Quadrat.Number)) +
       geom_line() + geom_point() +
-      facet_wrap(~Plot.Number, labeller = panel_names)
+      facet_wrap(~Plot.Number, labeller = panel_names) +
+      theme_bw() +
+      theme(strip.background = element_blank()) +
+      labs(title="")
 p
 ```
+
+Richness - By treatment
+```{r}
+rich_treat_cp <- richness_df_treat %>% pivot_longer(c(4:6), names_to="Year", values_to="val")
+panel_names <- as_labeller(c())
+p <- ggplot(data=rich_treat_cp, aes(x=Year, y=val, color=Fenced, shape=Gap, group=interaction(Fenced,Gap))) +
+      geom_line() + geom_point() +
+      facet_wrap(~Treatment, labeller = panel_names) +
+      theme_bw() +
+      theme(strip.background = element_blank()) +
+      labs(title="")
+p
+```
+Richness - By treatment % change
+```{r}
+x <- c("X0", "X3", "X6")
+rich_treat_cp <- rich_treat_cp %>% group_by(Treatment, Fenced, Gap) %>% 
+                        mutate(Year = factor(Year, levels=x)) %>%
+                        arrange(Year, .by_group=TRUE) %>%
+                        mutate(pct_change = (val/lag(val) - 1) * 100) %>%
+                        replace(is.na(.), 0)
+panel_names <- as_labeller(c())
+p <- ggplot(data=rich_treat_cp, aes(x=Year, y=pct_change, color=Fenced, shape=Gap, group=interaction(Fenced,Gap))) +
+      geom_line() + geom_point() +
+      facet_wrap(~Treatment, labeller = panel_names) +
+      theme_bw() +
+      theme(strip.background = element_blank()) +
+      labs(title="")
+p
+```
+
+Richness - By plot - Treatment Gap
+```{r}
+rich_gap_cp <- richness_df_plot %>% filter(Treatment == "Gap") %>% pivot_longer(c(5:7), names_to="Year", values_to="val")
+panel_names <- as_labeller(c())
+p <- ggplot(data=rich_gap_cp, aes(x=Year, y=val, color=Fenced, shape=Gap, group=interaction(Fenced,Gap))) +
+      geom_line() + geom_point() +
+      facet_wrap(~Plot.Number, labeller = panel_names) +
+      theme_bw() +
+      theme(strip.background = element_blank()) +
+      labs(title="")
+p
+```
+
+
 
 
 ## Hypothesis 1
@@ -54,12 +133,12 @@ p
 
 ### Year 0 vs Year 6
 ```{r}
-
 diversity_df$Increase_0to6 <- diversity_df$X6 > diversity_df$X0
 diversity_df$Increase_0to6 <- as.numeric(diversity_df$Increase_0to6)
 
 str(diversity_df)
 ```
+
 Model 1 - Treatment + Gap + Fenced + Gap*Fenced
 ```{r}
 hyp1_div_mod1 <- glm(Increase_0to6 ~ Treatment + Gap + Fenced + Gap*Fenced,
@@ -67,12 +146,14 @@ hyp1_div_mod1 <- glm(Increase_0to6 ~ Treatment + Gap + Fenced + Gap*Fenced,
 summary(hyp1_div_mod1)
 ```
 
+Model 2 - 
 ```{r}
 hyp1_div_mod1 <- glm(Increase_0to6 ~ Treatment + Gap + Fenced + Gap*Fenced,
                           family='poisson', data=diversity_df)
 summary(hyp1_div_mod1)
 ```
 
+Model 3 - 1 + Gap:Fenced + Treatment:Fenced + Treatment:Gap
 ```{r}
 hyp1_div_mod2 <- glm(Increase_0to6 ~ 1 + Gap*Fenced + Treatment*Fenced + Treatment*Gap,
                           family='binomial', data=diversity_df)
@@ -87,7 +168,63 @@ summary(hyp1_div_mod3)
 ```
 
 ## Hypothesis 2
-#### There will be a greater change in the relative abundances of species in the understorey community in T1 as compared to T2
-```{r}
+#### There will be a greater increase in understorey species richness in T1 as compared to T2 and in T2 compared to Control plots
 
+### Year 0 vs Year 6
+```{r}
+str(richness_df_plot)
+richness_df_quad <- richness_df_quad %>% drop_na(X0, X3, X6)
+richness_df_quad$Increase_0to6 <- richness_df_quad$X6 > richness_df_quad$X0
+richness_df_quad$Increase_0to6 <- as.numeric(richness_df_quad$Increase_0to6)
+```
+
+Model 1 - Treatment + Gap + Fenced + Gap*Fenced
+```{r}
+hyp2_rich_mod1 <- glm(Increase_0to6 ~ Treatment + Gap + Fenced + Gap*Fenced,
+                          family='binomial', data=richness_df_quad)
+summary(hyp2_rich_mod1)
+```
+
+```{r}
+step(hyp2_rich_mod1)
+```
+
+Model 2 - Treatment + Gap + Fenced + Gap*Fenced
+```{r}
+hyp2_rich_mod2 <- glm(Increase_0to6 ~ Treatment + Gap + Fenced + Gap*Fenced,
+                          family='poisson', data=richness_df_quad)
+summary(hyp2_rich_mod2)
+```
+
+```{r}
+step(hyp2_rich_mod2)
+```
+
+Model 3 - 1 + Gap:Fenced + Treatment:Fenced + Treatment:Gap
+```{r}
+hyp2_div_mod3 <- glm(Increase_0to6 ~ 1 + Gap*Fenced + Treatment*Fenced + Treatment*Gap,
+                          family='binomial', data=richness_df_quad)
+summary(hyp2_div_mod3)
+```
+
+```{r}
+step(hyp2_div_mod3)
+```
+
+Model 4 - 
+```{r}
+hyp2_div_mod4 <- glm(Increase_0to6 ~ 1 + Gap*Fenced + Treatment*Fenced + Treatment*Gap,
+                          family='poisson', data=richness_df_quad)
+summary(hyp2_div_mod4)
+```
+
+Model 5 - 1 + Treatment + Fenced + Gap + Treatment*Fenced
+```{r}
+hyp2_div_mod5 <- glm(Increase_0to6 ~ 1 + Treatment + Fenced + Gap + Treatment*Fenced,
+                          family='poisson', data=richness_df_quad)
+summary(hyp2_div_mod5)
+```
+
+```{r}
+step(hyp2_div_mod5)
 ```
