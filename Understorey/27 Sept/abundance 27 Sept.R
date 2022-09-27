@@ -87,4 +87,49 @@ mean(abundance_totals$X6)
 
 
 
+##########################
+# Model Medium Forb/Herb #
+##########################
+#EVC benchmark: #spp: 10 (richness), %cover: 20 (abundance)
+
+# Setup
+library(lme4)
+
+df <- read.csv('../dataset/tables/abundance_species_for_analysis.csv')
+unique(df['Life.Form'])
+colnames(df)
+
+df <- df[df$Life.Form=='Medium Forb/Herb',]
+
+df$Plot <- factor(df$Plot)
+df$Treatment <- factor(df$Treatment)
+df$Fenced <- df$Fenced=="True"
+df$Gap <- df$Gap=="True"
+
+
+# Modeling Y3
+mixed_Y3_01 <- lmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 +
+                         (1|Plot.Number) + (1 + Treatment + Gap | Species.Name),
+                         data=df)
+summary(mixed_Y3_01)
+plot(mixed_Y3_01)
+
+qqnorm(residuals(mixed_Y3_01))
+qqline(residuals(mixed_Y3_01))
+
+mixed_Y3_02 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 +
+                          (1|Plot.Number) + (1 + Treatment + Gap | Species.Name),
+                          family='poisson', data=df)
+summary(mixed_Y3_02)
+plot(mixed_Y3_02)
+
+
+# Modeling Y6
+mixed_Y6_01 <- lmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 +
+                         (1|Plot.Number) + (1 + Treatment + Gap | Species.Name),
+                         data=df)
+summary(mixed_Y6_01)
+plot(mixed_Y6_01)
+qqnorm(residuals(mixed_Y6_01))
+qqline(residuals(mixed_Y6_01))
 

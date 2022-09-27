@@ -36,13 +36,14 @@ df.rename(columns={'Plot_treatment': 'Treatment',
                    'Year_monitoring': 'Year',
                    'T002_Flora_Species_name':'Species Name'}, inplace=True)
 
-lf_abund = df.drop('Species Name', axis=1).groupby(
+lf_abund = df.groupby(
                             ['Treatment',
                              'Plot Number',
                              'Quadrat Number',
                              'Fenced',
                              'Gap',
                              'Life Form',
+                             'Species Name',
                              'Year']).sum()
 
 
@@ -51,10 +52,10 @@ lf_abund = df.drop('Species Name', axis=1).groupby(
 ###########################
 
 # Aggregate life form abundance over quadrats?
-quads = True
+quads = False
 
 # Aggregate life form abundance over plots as well?
-plots = True
+plots = False
 
 
 if quads and not plots:
@@ -76,7 +77,7 @@ if quads and plots:
 ####################
 # Convert to table #
 ####################
-
+'''
 lf_abund = lf_abund['Abundance']
 
 rows = lf_abund.index.droplevel(lf_abund.index.names[-2:])
@@ -132,3 +133,15 @@ analysis_lf_abund_rel = analysis_lf_abund_rel.stack()
 
 # analysis_lf_abund.to_csv('./output/midpoint/abundance/for analysis/lf_abund_analysis.csv')
 # analysis_lf_abund_rel.to_csv('./output/midpoint/abundance/for analysis/lf_abund_rel_analysis.csv')
+'''
+
+# Species level:
+lf_abund=lf_abund['Abundance']
+rows = lf_abund.index.droplevel('Year').drop_duplicates()
+cols = [0,3,6]
+
+matrix = pd.DataFrame(0, index=rows, columns=cols)
+
+for i in lf_abund.index:
+    matrix.at[i[:-1],i[-1]] = lf_abund.loc[i]
+
