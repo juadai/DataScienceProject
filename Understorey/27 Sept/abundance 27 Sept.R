@@ -1,4 +1,3 @@
-
 # Load data
 library(rstudioapi)
 setwd(dirname(getActiveDocumentContext()$path))
@@ -133,3 +132,280 @@ plot(mixed_Y6_01)
 qqnorm(residuals(mixed_Y6_01))
 qqline(residuals(mixed_Y6_01))
 
+
+
+
+############################################
+# Model Prostrate or Mat-forming Forb/Herb #
+############################################
+#EVC benchmark: #spp: 5 (richness), %cover: 10 (abundance)
+
+
+# Setup
+PMFH_df <- read.csv('../dataset/tables/abundance_species_for_analysis.csv')
+
+PMFH_df <- PMFH_df[PMFH_df$Life.Form=='Prostrate or Mat-forming Forb/Herb',]
+
+PMFH_df$Plot <- factor(PMFH_df$Plot)
+PMFH_df$Treatment <- factor(PMFH_df$Treatment)
+PMFH_df$Fenced <- PMFH_df$Fenced=="True"
+PMFH_df$Gap <- PMFH_df$Gap=="True"
+
+
+# Modeling Y3
+
+# Fixed-effect models
+PMFH_Y3_01 <- lm(X3 ~ (X0 + Treatment + Gap + Fenced)^2, data=PMFH_df)
+
+PMFH_Y3_02 <- step(PMFH_Y3_01)
+summary(PMFH_Y3_02)
+
+anova(PMFH_Y3_02, PMFH_Y3_01) #choose smaller model
+
+
+# Mixed-effect models
+PMFH_mixed_Y3_01 <- lmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y3_01) #random effect of plot.number on intercept is not significant at all
+coef(PMFH_mixed_Y3_01)
+plot(PMFH_mixed_Y3_01)
+AIC(PMFH_mixed_Y3_01)
+
+qqnorm(residuals(PMFH_mixed_Y3_01))
+qqline(residuals(PMFH_mixed_Y3_01))
+
+
+PMFH_mixed_Y3_02 <- lmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1 + Treatment + Gap|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y3_02)
+coef(PMFH_mixed_Y3_02)
+plot(PMFH_mixed_Y3_02)
+AIC(PMFH_mixed_Y3_02) # lower than model 1
+
+qqnorm(residuals(PMFH_mixed_Y3_02))
+qqline(residuals(PMFH_mixed_Y3_02))
+
+
+PMFH_mixed_Y3_03 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 +  (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y3_03)
+plot(PMFH_mixed_Y3_03)
+AIC(PMFH_mixed_Y3_03) #lower than linear mixed model
+
+
+PMFH_mixed_Y3_04 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 +  (1 + Treatment + Gap | Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y3_04)
+plot(PMFH_mixed_Y3_04) #lower residuals than model 3
+AIC(PMFH_mixed_Y3_04)  #much lower than model 3
+
+
+PMFH_mixed_Y3_05 <- lmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Treatment + X0:Fenced + Treatment:Gap 
+                         + (1 + Treatment + Gap | Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y3_05)
+plot(PMFH_mixed_Y3_05)
+AIC(PMFH_mixed_Y3_05)
+
+qqnorm(residuals(PMFH_mixed_Y3_04))
+qqline(residuals(PMFH_mixed_Y3_04))
+
+
+PMFH_mixed_Y3_06 <- glmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Treatment + X0:Fenced + Treatment:Gap 
+                         + (1 + Treatment + Gap | Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y3_06)
+plot(PMFH_mixed_Y3_06)
+AIC(PMFH_mixed_Y3_06) #lower than model 4
+
+
+PMFH_mixed_Y3_07 <- glmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Treatment + X0:Fenced 
+                          + (1 + Treatment + Gap | Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y3_07)
+plot(PMFH_mixed_Y3_07)
+AIC(PMFH_mixed_Y3_07)
+
+
+PMFH_mixed_Y3_08 <- glmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Fenced 
+                          + (1 + Treatment + Gap | Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y3_08)
+plot(PMFH_mixed_Y3_08)
+AIC(PMFH_mixed_Y3_08)
+
+anova(PMFH_mixed_Y3_08, PMFH_mixed_Y3_07)
+
+PMFH_mixed_Y3_09 <- glmer(X3 ~ X0 + Gap + Fenced + X0:Fenced 
+                          + (1 + Gap | Plot.Number) + (1 + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y3_09)
+plot(PMFH_mixed_Y3_09)
+AIC(PMFH_mixed_Y3_09)
+
+#Mixed-effect model 8 is the best here 
+
+
+# Modeling Y6
+
+# Fixed-effect models
+PMFH_Y6_01 <- lm(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2, data=PMFH_df)
+
+PMFH_Y6_02 <- step(PMFH_Y6_01)
+summary(PMFH_Y6_02)
+
+anova(PMFH_Y6_02, PMFH_Y6_01) #choose smaller model
+
+
+# Mixed-effect models
+PMFH_mixed_Y6_01 <- lmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y6_01)
+plot(PMFH_mixed_Y6_01)
+AIC(PMFH_mixed_Y6_01)
+
+qqnorm(residuals(PMFH_mixed_Y6_01))
+qqline(residuals(PMFH_mixed_Y6_01)) #weird looking qq plot at the right tail
+
+library(lmerTest)
+anova(PMFH_mixed_Y6_01)
+
+
+PMFH_mixed_Y6_02 <- lmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1 + Treatment + Gap|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y6_02)
+plot(PMFH_mixed_Y6_02)
+AIC(PMFH_mixed_Y6_02) # worse than model 1
+
+qqnorm(residuals(PMFH_mixed_Y6_02))
+qqline(residuals(PMFH_mixed_Y6_02))
+
+
+PMFH_mixed_Y6_03 <- glmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 +  (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y6_03)
+plot(PMFH_mixed_Y6_03) #larger residuals than model 1
+AIC(PMFH_mixed_Y6_03) # much lower than model 1
+
+
+PMFH_mixed_Y6_04 <- lmer(X6 ~ (X0 + X3 + Treatment + Fenced)^2 + (1|Plot.Number) + (1 + Treatment | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y6_04)
+plot(PMFH_mixed_Y6_04)
+AIC(PMFH_mixed_Y6_04) #lower than model 1 but nothing seems significant
+
+
+PMFH_mixed_Y6_05 <- lmer(X6 ~ (X0 + X3 + Treatment + Fenced)^2 - X0:Fenced + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y6_05)
+plot(PMFH_mixed_Y6_05)
+AIC(PMFH_mixed_Y6_05) #lower than model 4 but nothing seems significant
+
+
+PMFH_mixed_Y6_06 <- lmer(X6 ~ (X3 + Treatment + Fenced)^2 + X0 + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y6_06)
+plot(PMFH_mixed_Y6_06)
+AIC(PMFH_mixed_Y6_06) #lower than model 5 but nothing seems significant
+
+
+PMFH_mixed_Y6_07 <- glmer(X6 ~ (X0 + X3 + Treatment + Fenced)^2 - X0:Fenced - X3:Fenced - X0:Treatment +  (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), family='poisson', data=PMFH_df)
+summary(PMFH_mixed_Y6_07)
+plot(PMFH_mixed_Y6_07)
+AIC(PMFH_mixed_Y6_07)
+
+#Try negative binomial model
+PMFH_mixed_Y6_08 <- glmer.nb(X6 ~ (X0 + X3 + Treatment + Fenced)^2 - X0:Fenced - X3:Fenced - X0:Treatment +  (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=PMFH_df)
+summary(PMFH_mixed_Y6_08)
+plot(PMFH_mixed_Y6_08) #larger residuals than model 1
+AIC(PMFH_mixed_Y6_08)
+# Took too long to run 
+
+#choose model 7 here (but the residuals are very high compared to the fitted values)
+
+
+
+
+##################################
+# Model Small Tufted grass/sedge #
+##################################
+#EVC benchmark: #spp: 9 (richness), % cover: 35 (abundance)
+
+
+# Setup
+STGS_df <- read.csv('../dataset/tables/abundance_species_for_analysis.csv')
+
+STGS_df <- STGS_df[STGS_df$Life.Form=='Small Tufted grass/sedge',]
+
+STGS_df$Plot <- factor(STGS_df$Plot)
+STGS_df$Treatment <- factor(STGS_df$Treatment)
+STGS_df$Fenced <- STGS_df$Fenced=="True"
+STGS_df$Gap <- STGS_df$Gap=="True"
+
+
+# Modeling Y3
+
+# Fixed-effect models
+STGS_Y3_01 <- lm(X3 ~ (X0 + Treatment + Gap + Fenced)^2, data=STGS_df)
+
+STGS_Y3_02 <- step(PMFH_Y3_01)
+summary(STGS_Y3_02)
+
+anova(STGS_Y3_02, PMFH_Y3_01) #choose smaller model
+
+
+# Mixed-effect models
+STGS_mixed_Y3_01 <- lmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=STGS_df)
+summary(STGS_mixed_Y3_01) 
+plot(STGS_mixed_Y3_01)
+AIC(STGS_mixed_Y3_01)
+
+STGS_mixed_Y3_02 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name),family='poisson', data=STGS_df)
+summary(STGS_mixed_Y3_02) 
+plot(STGS_mixed_Y3_02) # yield lower residuals than gaussian GLM
+AIC(STGS_mixed_Y3_02) #much lower than model 1
+
+STGS_mixed_Y3_03 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1 + Treatment + Gap |Plot.Number) + (1 + Treatment + Gap | Species.Name),family='poisson', data=STGS_df)
+summary(STGS_mixed_Y3_03) 
+plot(STGS_mixed_Y3_03) # yield a bit lower residuals than model 2
+AIC(STGS_mixed_Y3_03)
+
+STGS_mixed_Y3_04 <- glmer(X3 ~ (X0 + Treatment + Fenced)^2 + (1 + Treatment + Gap |Plot.Number) + (1 + Treatment + Gap | Species.Name),family='poisson', data=STGS_df)
+summary(STGS_mixed_Y3_04) 
+plot(STGS_mixed_Y3_04) 
+AIC(STGS_mixed_Y3_04)
+
+#choose model 4
+
+
+
+
+# Modeling Y6
+
+# Fixed-effect models
+STGS_Y6_01 <- lm(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2, data=STGS_df)
+
+STGS_Y6_02 <- step(STGS_Y6_01)
+summary(STGS_Y6_02)
+
+anova(STGS_Y6_02, STGS_Y6_01) #choose smaller model
+
+
+# Mixed-effect models
+STGS_mixed_Y6_01 <- lmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=STGS_df)
+summary(STGS_mixed_Y6_01) # Plot number has no random effect on intercept
+plot(STGS_mixed_Y6_01) # seems to have 2 outliers 
+AIC(STGS_mixed_Y6_01)
+
+qqnorm(residuals(STGS_mixed_Y6_01))
+qqline(residuals(STGS_mixed_Y6_01)) #weird looking qq plot at the right tail
+
+STGS_mixed_Y6_02 <- lmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1 + Treatment + Gap|Plot.Number) + (1 + Treatment + Gap | Species.Name), data=STGS_df)
+summary(STGS_mixed_Y6_02) #Random effects from Plot.Number are really small
+plot(STGS_mixed_Y6_02)
+AIC(STGS_mixed_Y6_02) # worse than model 1
+
+qqnorm(residuals(STGS_mixed_Y6_02))
+qqline(residuals(STGS_mixed_Y6_02))
+
+STGS_mixed_Y6_03 <- glmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1 + Treatment + Gap|Plot.Number) + (1 + Treatment + Gap | Species.Name),family='poisson', data=STGS_df)
+summary(STGS_mixed_Y6_03) 
+plot(STGS_mixed_Y6_03) # much lower residuals than the first 2 models
+AIC(STGS_mixed_Y6_03) # much lower than the first 2 models
+
+STGS_mixed_Y6_04 <- glmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 - X3:Treatment + (1 + Treatment + Gap|Plot.Number) + (1 + Treatment + Gap | Species.Name),family='poisson', data=STGS_df)
+summary(STGS_mixed_Y6_04) 
+plot(STGS_mixed_Y6_04) 
+AIC(STGS_mixed_Y6_04)
+
+STGS_mixed_Y6_05 <- glmer(X6 ~  (X0 + X3 + Treatment + Gap + Fenced)^2 - X3:Treatment  - X0:Treatment + (1 + Treatment + Gap|Plot.Number) + (1 + Treatment + Gap | Species.Name),family='poisson', data=STGS_df)
+summary(STGS_mixed_Y6_05) 
+plot(STGS_mixed_Y6_05) 
+AIC(STGS_mixed_Y6_05)
+
+#model 5 is the best here, but the residuals are quite high compared to the fitted values
