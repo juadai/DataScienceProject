@@ -93,17 +93,54 @@ mean(abundance_totals$X6)
 
 # Setup
 library(lme4)
+library(lmerTest)
 
 df <- read.csv('../dataset/tables/abundance_species_for_analysis.csv')
 unique(df['Life.Form'])
 colnames(df)
 
-df <- df[df$Life.Form=='Medium Forb/Herb',]
+grouped <- aggregate(cbind(df$X0,df$X3,df$X6),
+                     list(df$Life.Form), FUN=sum)
+grouped <- grouped[order(grouped$V1, decreasing=T),]
+rownames(grouped) <- grouped$Group.1
+
+par(mar=c(15,5,3,3))
+plot(grouped$V1, cex=0.75, ylim=c(0,6000), xaxt='n', xlab='',
+     ylab='Sum of abundance across trial', main='Total abundance of each life form')
+axis(1, at = 1:19, labels = grouped$Group.1,las=2)
+points(1:19, grouped$V2, col='red', cex=0.75)
+points(1:19, grouped$V3, col='blue', cex=0.75)
+legend('topright',legend=c('Year 0', 'Year 3', 'Year 6'),
+       pch=1,
+       col=c('black', 'red', 'blue'),
+       cex=0.75)
+
+df <- df[df$Life.Form=='Medium Forb/Heb',]
 
 df$Plot <- factor(df$Plot)
 df$Treatment <- factor(df$Treatment)
 df$Fenced <- df$Fenced=="True"
 df$Gap <- df$Gap=="True"
+
+
+# Visualisations
+grouped <- aggregate(cbind(df$X0,df$X3,df$X6), 
+                     by=list(df$Treatment,df$Plot.Number,df$Quadrat.Number,df$Fenced,df$Gap,df$Life.Form), 
+                     FUN=sum)
+
+hist(grouped$V1, ylim=c(0,230), xlim=c(0,65),
+     main='Medium Forb/Herb - Year 0', 
+     xlab='Abundance (BB)', ylab='Number of quadrats')
+abline(v=20, col='red')
+hist(grouped$V2, ylim=c(0,230), xlim=c(0,65),
+     main='Medium Forb/Herb - Year 0', 
+     xlab='Abundance (BB)', ylab='Number of quadrats')
+abline(v=20, col='red')
+hist(grouped$V3, ylim=c(0,230), xlim=c(0,65),
+     main='Medium Forb/Herb - Year 0', 
+     xlab='Abundance (BB)', ylab='Number of quadrats')
+abline(v=20, col='red')
+
 
 
 # Modeling Y3
@@ -112,6 +149,10 @@ mixed_Y3_01 <- lmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 +
                          data=df)
 summary(mixed_Y3_01)
 plot(mixed_Y3_01)
+
+mixed_Y3_03 <- step(mixed_Y3_01)
+mixed_Y3_03 <- get_model(mixed_Y3_03)
+summary(mixed_Y3_03)
 
 qqnorm(residuals(mixed_Y3_01))
 qqline(residuals(mixed_Y3_01))
@@ -152,6 +193,26 @@ PMFH_df$Fenced <- PMFH_df$Fenced=="True"
 PMFH_df$Gap <- PMFH_df$Gap=="True"
 
 
+# Visualisations
+grouped <- aggregate(cbind(PMFH_df$X0,PMFH_df$X3,PMFH_df$X6), 
+                     by=list(PMFH_df$Treatment,PMFH_df$Plot.Number,PMFH_df$Quadrat.Number,PMFH_df$Fenced,PMFH_df$Gap,PMFH_df$Life.Form), 
+                     FUN=sum)
+
+hist(grouped$V1, ylim=c(0,250), xlim=c(0,80),
+     main='Prostrate or Mat-forming Forb/Herb - Year 0', 
+     xlab='Abundance (BB)', ylab='Number of quadrats', nclass=20)
+abline(v=10, col='red')
+hist(grouped$V2, ylim=c(0,250), xlim=c(0,80),
+     main='Prostrate or Mat-forming Forb/Herb - Year 0', 
+     xlab='Abundance (BB)', ylab='Number of quadrats', nclass=20)
+abline(v=10, col='red')
+hist(grouped$V3, ylim=c(0,250), xlim=c(0,80),
+     main='Prostrate or Mat-forming Forb/Herb - Year 0', 
+     xlab='Abundance (BB)', ylab='Number of quadrats', nclass=10)
+abline(v=10, col='red')
+
+
+?hist
 # Modeling Y3
 
 # Fixed-effect models
@@ -257,7 +318,6 @@ AIC(PMFH_mixed_Y6_01)
 qqnorm(residuals(PMFH_mixed_Y6_01))
 qqline(residuals(PMFH_mixed_Y6_01)) #weird looking qq plot at the right tail
 
-library(lmerTest)
 anova(PMFH_mixed_Y6_01)
 
 

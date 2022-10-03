@@ -37,13 +37,23 @@ richness_Y3_02 <- step(richness_Y3_01)
 summary(richness_Y3_02)
 plot(richness_Y3_02)
 
-k = log(length(richness_df[,1]))
-richness_Y3_03 <- step(richness_Y3_01, k=k)
-summary(richness_Y3_03)
+anova(glm(formula = X3 ~ X0 + Treatment + Gap + Fenced + Treatment:Gap + 
+            Treatment:Fenced, family = "poisson", data = richness_df),
+      glm(formula = X3 ~ X0 + Treatment + Gap + Fenced + Treatment:Gap, family = "poisson", data = richness_df),
+      test='Chi')
 
-anova(richness_Y3_03, richness_Y3_02, test='Chi')
+richness_Y3_03 <- glm(formula = X3 ~ X0 + Treatment + Gap + Fenced + Treatment:Gap, family = "poisson", data = richness_df)
+summary(richness_Y3_03)
+pchisq(265.356, 261, lower=F) # Pass
+
+
+k = log(length(richness_df[,1]))
+richness_Y3_04 <- step(richness_Y3_01, k=k)
+summary(richness_Y3_04)
+
+anova(richness_Y3_04, richness_Y3_02, test='Chi')
 richness_Y3_02$call
-richness_Y3_03$call
+richness_Y3_04$call
 # Keep the larger model 2
 summary(richness_Y3_02)
 
@@ -102,3 +112,24 @@ plot(richness_Y6_02)
 
 
 
+richness_df
+
+richness_0 <- cbind(richness_df[1:5],richness_df[6])
+richness_0['Year']=0
+names(richness_0) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
+
+richness_3 <- cbind(richness_df[1:5],richness_df[7])
+richness_3['Year'] <- 3
+names(richness_3) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
+
+richness_6 <- cbind(richness_df[1:5],richness_df[8])
+richness_6['Year'] <- 6
+names(richness_6) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
+
+richness <- rbind(richness_0, richness_3, richness_6)
+
+m1 <- glm(X ~ (Treatment + Fenced + Gap + Year)^2, family='poisson', data=richness)
+summary(m1)
+m2 <- step(m1)
+summary(m2)
+plot(m2)

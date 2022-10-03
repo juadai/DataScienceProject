@@ -54,6 +54,7 @@ anova(diversity_Y3_03, diversity_Y3_02, test='Chi')
 summary(diversity_Y3_02)
 
 
+
 mixed_Y3_01 <- lmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Gap + Treatment:Gap +
                       (1 | Plot.Number), data = diversity_df)
 summary(mixed_Y3_01)
@@ -88,6 +89,31 @@ anova(diversity_Y6_03, diversity_Y6_02, test='Chi')
 # Can't take the smaller model
 
 summary(diversity_Y6_02)
+
+
+
+
+diversity_df
+
+diversity_0 <- cbind(diversity_df[1:5],diversity_df[6])
+diversity_0['Year']=0
+names(diversity_0) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
+
+diversity_3 <- cbind(diversity_df[1:5],diversity_df[7])
+diversity_3['Year'] <- 3
+names(diversity_3) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
+
+diversity_6 <- cbind(diversity_df[1:5],diversity_df[8])
+diversity_6['Year'] <- 6
+names(diversity_6) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
+
+diversity <- rbind(diversity_0, diversity_3, diversity_6)
+
+m1 <- glm(X ~ (Treatment + Fenced + Gap + Year)^2, data=diversity)
+summary(m1)
+m2 <- step(m1)
+summary(m2)
+plot(m2)
 
 
 
