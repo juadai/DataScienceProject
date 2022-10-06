@@ -65,7 +65,10 @@ coef(mixed_Y3_01)
 
 plot(mixed_Y3_01)
 
-
+RSS <- sum((diversity_df$X3 - fitted(mixed_Y3_01, diversity_df))^2)
+TSS <- sum((diversity_df$X3 - mean(diversity_df$X3))^2)
+R2 <- 1-RSS/TSS
+R2
 
 ##############################
 # Diversity Modeling: Y6 ~ N #
@@ -92,7 +95,10 @@ anova(diversity_Y6_03, diversity_Y6_02, test='Chi')
 summary(diversity_Y6_02)
 
 
-
+RSS <- sum((diversity_df$X6 - fitted(diversity_Y6_02, diversity_df))^2)
+TSS <- sum((diversity_df$X6 - mean(diversity_df$X6))^2)
+R2 <- 1-RSS/TSS
+R2
 
 
 diversity_df
