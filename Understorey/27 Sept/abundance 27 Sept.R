@@ -115,7 +115,8 @@ legend('topright',legend=c('Year 0', 'Year 3', 'Year 6'),
        col=c('black', 'red', 'blue'),
        cex=0.75)
 
-df <- df[df$Life.Form=='Medium Forb/Heb',]
+df$Life.Form
+df <- df[df$Life.Form=='Medium Forb/Herb',]
 
 df$Plot <- factor(df$Plot)
 df$Treatment <- factor(df$Treatment)
@@ -145,7 +146,7 @@ abline(v=20, col='red')
 
 # Modeling Y3
 mixed_Y3_01 <- lmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 +
-                         (1|Plot.Number) + (1 + Treatment + Gap | Species.Name),
+                         (1|Plot.Number) + (1 + Treatment|Species.Name),
                          data=df)
 summary(mixed_Y3_01)
 plot(mixed_Y3_01)
@@ -153,6 +154,13 @@ plot(mixed_Y3_01)
 mixed_Y3_03 <- step(mixed_Y3_01)
 mixed_Y3_03 <- get_model(mixed_Y3_03)
 summary(mixed_Y3_03)
+# Drops (Treatment|Species)
+
+mixed_Y3_03
+
+ranova(mixed_Y3_01)
+# Other random effects highly significant
+# (1|Plot Number), (1|Species.Name)
 
 qqnorm(residuals(mixed_Y3_01))
 qqline(residuals(mixed_Y3_01))

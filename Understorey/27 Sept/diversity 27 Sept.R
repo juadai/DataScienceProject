@@ -3,6 +3,7 @@
 library(rstudioapi)
 library(pROC)
 library(lme4)
+library(lmerTest)
 
 setwd(dirname(getActiveDocumentContext()$path))
 diversity_df <- read.csv('../dataset/tables/species_divers_quadrats.csv')
@@ -93,6 +94,7 @@ summary(diversity_Y6_02)
 
 
 
+
 diversity_df
 
 diversity_0 <- cbind(diversity_df[1:5],diversity_df[6])
@@ -103,17 +105,29 @@ diversity_3 <- cbind(diversity_df[1:5],diversity_df[7])
 diversity_3['Year'] <- 3
 names(diversity_3) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
 
+
 diversity_6 <- cbind(diversity_df[1:5],diversity_df[8])
 diversity_6['Year'] <- 6
 names(diversity_6) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
 
 diversity <- rbind(diversity_0, diversity_3, diversity_6)
+diversity$Year2 <- diversity$Year^2
 
-m1 <- glm(X ~ (Treatment + Fenced + Gap + Year)^2, data=diversity)
+# Expand the basis to be quadratic in YEAR
+# Allows increase at Y3, decrease at Y6
+
+
+m1 <- lmer(X ~ (Treatment + Fenced + Gap + Year + Year2)^2 +
+             (1|Plot.Number), data=diversity)
 summary(m1)
-m2 <- step(m1)
+m2 <- get_model(step(m1))
 summary(m2)
 plot(m2)
 
+RSS <- sum((diversity$X - fitted(m2, diversity))^2)
+TSS <- sum((diversity$X - mean(diversity$X))^2)
+R2 <- 1-RSS/TSS
+R2
 
+# Not good - residuals are too large, very little correlation
 

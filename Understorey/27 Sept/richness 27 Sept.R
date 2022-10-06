@@ -2,6 +2,7 @@
 library(rstudioapi)
 library(pROC)
 library(lme4)
+library(lmerTest)
 
 setwd(dirname(getActiveDocumentContext()$path))
 richness_df <- read.csv('../dataset/tables/species_richness_quadrats.csv')
@@ -109,8 +110,11 @@ plot(richness_Y6_02)
 # Try poisson without interaction
 
 
+c(mean(richness_df$X0), var(richness_df$X0))
+c(mean(richness_df$X3), var(richness_df$X3))
+c(mean(richness_df$X6), var(richness_df$X6))
 
-
+# Key assumption for Poisson distribution doesn't hold (mean = variance)
 
 richness_df
 
@@ -127,9 +131,33 @@ richness_6['Year'] <- 6
 names(richness_6) <- c("Treatment", "Plot.Number", 'Quadrat.Number', "Fenced", "Gap", "X", 'Year')
 
 richness <- rbind(richness_0, richness_3, richness_6)
+richness$Year2 <- richness$Year^2
+
+# Expand the basis to be quadratic in YEAR
+# Allows increase at Y3, decrease at Y6
 
 m1 <- glm(X ~ (Treatment + Fenced + Gap + Year)^2, family='poisson', data=richness)
 summary(m1)
 m2 <- step(m1)
 summary(m2)
 plot(m2)
+
+
+richness
+
+model1 <- lmer(X ~ (Treatment + Fenced + Gap + Year + Year2)^2 +
+                 (1|Plot.Number), data=richness)
+
+model2 <- get_model(step(model1))
+summary(model2)
+ranova(model2)
+
+RSS <- sum((richness$X - fitted(model2, richness))^2)
+TSS <- sum((richness$X - mean(richness$X))^2)
+R2 <- 1-RSS/TSS
+R2
+
+plot(model2)
+
+# Not good - residuals are too large, very little correlation
+
