@@ -63,23 +63,22 @@ samp.pct <- (1:n-0.5)/n
 qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(richness_df$Y0.Y3.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
 abline(0,1,col="red")
 
-Y0.Y3.guass.model = glm(Y0.Y3.Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y0.Y3.guass.model = glm(Y0.Y3.Difference ~  Fenced+ Treatment* Gap, family = gaussian, data = richness_df)
 summary(Y0.Y3.guass.model)
 par(mfrow = c(2,2))
 
 plot(Y0.Y3.guass.model)
 Y0.Y3.pure.guass.model <- glm(Y0.Y3.Difference ~ 1, family = gaussian, data = richness_df)
 anova( Y0.Y3.pure.guass.model, Y0.Y3.guass.model, test = "F")
-# In model fitting, the treatment radial, gap are statistically significant, but when we use F-stats to test the H0: all the coefficient is zero, it states that we fail to reject null at 5% significance level
-# Pr(>F) = 0.5084
+
 ```
 ```{r model_selection_guassian, echo=TRUE}
 Y0.Y3.guass.model_selected <-step(Y0.Y3.guass.model, scope=~.)
 summary(Y0.Y3.guass.model_selected)
-# only treatment and gap is significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 1670 to 1625
+# only treatment and gap are significant at 5% significance level, all other factor is not significant in predicting the yr_richness_difference, AICdoes not change, stays at 1617
 anova(Y0.Y3.guass.model_selected, Y0.Y3.pure.guass.model,test = "F")
-# the selected model states that the gap and treatment is related to the richness
-#Pr(>F) = 0.0006474
+# the selected model states that the gap and treatment is related to the richness, and exists interaction effect between treatment and Gap
+#Pr(>F) = 2.339e-05
 ```
 
 ```{r glm_fit_gamma, echo=TRUE}
@@ -95,7 +94,7 @@ qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(richness_df$Y0.Y3.Abs_
 abline(0,1,col="red")
 
 
-Y0.Y3.gamma.model2 = glm(Y0.Y3.Abs_Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y0.Y3.gamma.model2 = glm(Y0.Y3.Abs_Difference ~ Treatment * Gap +  Fenced, family = Gamma, data = richness_df)
 summary(Y0.Y3.gamma.model2)
 par(mfrow = c(2,2))
 plot(Y0.Y3.gamma.model2)
@@ -104,10 +103,10 @@ plot(Y0.Y3.gamma.model2)
 ```{r model_selection_gamma, echo=TRUE}
 Y0.Y3.gamma.model_selected <-step(Y0.Y3.gamma.model2, scope=~.)
 summary(Y0.Y3.gamma.model_selected)
-# AIC decrease from 1702 to 1653
+# AIC does not change, stays at 1651
 Y0.Y3.empty_gamma_model <- glm(Y0.Y3.Abs_Difference ~ 1, family = Gamma, data = richness_df)
 anova(Y0.Y3.gamma.model_selected, Y0.Y3.empty_gamma_model, test = "F")
-# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>F) = 0.0006044
+# the model is significant at 5%, suggest that the coefficient for treatment and gap, fenced is not zero, Pr(>F) = 0.0001253
 ```
 
 ```{r fit_poisson_model, echo=TRUE}
@@ -123,7 +122,7 @@ abline(0,1,col="red")
 
 
 
-Y0.Y3.poisson.model2 = glm(Y0.Y3.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y0.Y3.poisson.model2 = glm(Y0.Y3.Abs_Difference~ Treatment* Gap +  Fenced, family = poisson, data = richness_df)
 summary(Y0.Y3.poisson.model2)
 par(mfrow = c(2,2))
 plot(Y0.Y3.poisson.model2)
@@ -132,10 +131,10 @@ plot(Y0.Y3.poisson.model2)
 ```{r model_selection_poisson, echo=TRUE}
 Y0.Y3.poisson.model_selected <-step(Y0.Y3.poisson.model2, scope=~.)
 summary(Y0.Y3.poisson.model_selected)
-#AIC decrease from 1708 to 1674
+#AIC decrease from 1662
 Y0.Y3.empty_poisson_model <- glm(Y0.Y3.Abs_Difference ~ 1, family = poisson, data = richness_df)
 anova(Y0.Y3.poisson.model_selected, Y0.Y3.empty_poisson_model, test = "Chi")
-# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>F) = 8.643e-07
+# the model is significant at 5%, suggest that the coefficient for fenced, treatment and gap is not zero, Pr(>F) = 3.19e-09
 ```
 
 ```{r fit_negative_binomial, echo=TRUE}
@@ -154,7 +153,7 @@ samp.pct <- (1:n-0.5)/n
 qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(richness_df$Y0.Y3.Abs_Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
 abline(0,1,col="red")
 #fit the model
-Y0.Y3.nb.model2 = glm.nb(Y0.Y3.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, data = richness_df)
+Y0.Y3.nb.model2 = glm.nb(Y0.Y3.Abs_Difference~ Treatment* Gap +  Fenced, data = richness_df)
 summary(Y0.Y3.nb.model2 )
 par(mfrow = c(2,2))
 plot(Y0.Y3.nb.model2)
@@ -163,30 +162,30 @@ plot(Y0.Y3.nb.model2)
 ```{r model_selection_negative_binomial, echo=TRUE}
 Y0.Y3.nb.model_selected <-step(Y0.Y3.nb.model2, scope=~.)
 summary(Y0.Y3.nb.model_selected)
-# AIC decrease from 1674 to 1629
+# AIC decrease from 1625
 Y0.Y3.empty_nb_model <- glm.nb(Y0.Y3.Abs_Difference ~ 1,  data = richness_df)
 anova(Y0.Y3.nb.model_selected, Y0.Y3.empty_nb_model, test = "LR")
-# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>z) = 0.0008629232
+# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>z) = 9.075586e-05
 ```
 
-**selected based on AIC values, we will choose the gaussian model, because it gives lowest AIC value of 1625.**
+**selected based on AIC values, we will choose the gaussian model, because it gives lowest AIC value of 1617.**
 
 
 
 ## diffrent modeling via prediction
 ```{r model_prediction_gaussian, echo=TRUE}
-Y0.Y3.guass.model2 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y0.Y3.guass.model2 = glm(X3 ~ X0 + Treatment* Gap + Fenced, family = gaussian, data = richness_df)
 summary(Y0.Y3.guass.model2)
 par(mfrow = c(2,2))
 plot(Y0.Y3.guass.model2)
 
-Y0.Y3.gamma.model3 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y0.Y3.gamma.model3 = glm(X3 ~ X0 + Treatment* Gap + Fenced, family = Gamma, data = richness_df)
 summary(Y0.Y3.gamma.model3)
 par(mfrow = c(2,2))
 
 plot(Y0.Y3.gamma.model3)
 
-Y0.Y3.poisson.model3 = glm(X3 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y0.Y3.poisson.model3 = glm(X3 ~ X0 + Treatment* Gap + Fenced, family = poisson, data = richness_df)
 summary(Y0.Y3.poisson.model3)
 par(mfrow = c(2,2))
 
@@ -202,14 +201,14 @@ summary(Y0.Y3.select_gamma.model3)
 
 Y0.Y3.select_poisson.model3 <- step(Y0.Y3.poisson.model3, scope=~.)
 summary(Y0.Y3.select_poisson.model3)
-# according to the AIC, we will choose the poisson model, since it has the lowest AIC of 1493.1
+# according to the AIC, we will choose the poisson model, since it has the low AIC of 1489.7, but it has better dispersion paramter is 1.
 ```
-## the result from gamma is contradicted with the result from gaussian and poisson.
+# select the poisson model with only X0, Treatment and Gap
 
 
 **Therefore, using the prediction with poisson model, it has the lowest AIC of 1493.1**
 ```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
-Y0.Y3.glmer.poiss1= glmer(X3 ~ X0 + Treatment  + Gap +  Fenced+ (1|Plot.Number), family = poisson, data = richness_df)
+Y0.Y3.glmer.poiss1= glmer(X3 ~ X0 + Treatment * Gap + (1|Plot.Number), family = poisson, data = richness_df)
 summary(Y0.Y3.glmer.poiss1)
 print(Y0.Y3.glmer.poiss1, correlation=TRUE)
 
@@ -223,26 +222,27 @@ qqline(resid(Y0.Y3.glmer.poiss1))
 
 
 anova(Y0.Y3.glmer.poiss1, Y0.Y3.select_poisson.model3)
+#(1 | Plot.Number) is not significant, Pr(>Chisq) = 0.5524
 
-
-Y0.Y3.glmer.poiss2= glmer(X3 ~ X0 + Treatment  + Gap +  Fenced  +(X0|Plot.Number), family = poisson, data = richness_df)
+Y0.Y3.glmer.poiss2= glmer(X3 ~ X0 + Treatment * Gap  +(X0|Plot.Number), family = poisson, data = richness_df)
 summary(Y0.Y3.glmer.poiss2)
 par(mfrow = c(2,2))
 plot(Y0.Y3.glmer.poiss2)
 anova(Y0.Y3.glmer.poiss2,Y0.Y3.select_poisson.model3,  test = "Chi")
+#(X0|Plot.Number) is not significant, Pr(>Chisq) = 0.1778
 
-Y0.Y3.glmer.poiss3= glmer(X3 ~ X0 + Treatment  + Gap +  Fenced + (1|Quadrat.Number), family = poisson, data = richness_df)
+Y0.Y3.glmer.poiss3= glmer(X3 ~ X0 + Treatment * Gap +  Fenced + (1|Quadrat.Number), family = poisson, data = richness_df)
 summary(Y0.Y3.glmer.poiss3)
 print(Y0.Y3.glmer.poiss3, correlation=TRUE)
 par(mfrow = c(2,2))
 plot(Y0.Y3.glmer.poiss3)
 anova(Y0.Y3.glmer.poiss3, Y0.Y3.select_poisson.model3)
-
+# (1 | Quadrat.Number) is not significant, Pr(>Chisq) = 0.7585
 
 # according to the Chisq, we will choose the poisson model without the random effect, since all the anova states no random effect,
 
 ```
-
+From year 0 to year 3, we may not use the random effect.
 
 
 
@@ -264,25 +264,25 @@ samp.pct <- (1:n-0.5)/n
 qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(richness_df$Y3.Y6.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
 abline(0,1,col="red")
 
-Y3.Y6.guass.model = glm(Y3.Y6.Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y3.Y6.guass.model = glm(Y3.Y6.Difference ~ Treatment * Gap  + Fenced, family = gaussian, data = richness_df)
 summary(Y3.Y6.guass.model)
 par(mfrow = c(2,2))
 
 plot(Y3.Y6.guass.model)
 Y3.Y6.pure.guass.model <- glm(Y3.Y6.Difference ~ 1, family = gaussian, data = richness_df)
 anova(Y3.Y6.pure.guass.model, Y3.Y6.guass.model, test = "F")
-# In model fitting, the treatment radial, gap are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
-# Pr(>F) = 0.03462
+# In model fitting, fenced, gap, and the interactions between treatment and gap are statistically significant, also when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = 4.811e-08
 ```
 
 
 ```{r model_selection_guassian_Y36, echo=TRUE}
 Y3.Y6.guass.model_selected <-step(Y3.Y6.guass.model, scope=~.)
 summary(Y3.Y6.guass.model_selected)
-# only treatment and gap is significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 1685 to 1650
+# only treatment and gap is significant, all other factor is not significant in predicting the yr_richness_difference, AIC stays at 1637.7
 anova(Y3.Y6.guass.model_selected, Y3.Y6.pure.guass.model,test = "F")
-# the selected model states that the gap and treatment is related to the richness
-#Pr(>F) = 3.422e-06
+# the selected model states that the gap and fenced and the interaction between gap and treatment is related to the richness
+#Pr(>F) = 4.811e-08
 ```
 
 ```{r glm_fit_gamma_Y36, echo=TRUE}
@@ -298,7 +298,7 @@ qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(richness_df$Y3.Y6.Abs_
 abline(0,1,col="red")
 
 
-Y3.Y6.gamma.model2 = glm(Y3.Y6.Abs_Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y3.Y6.gamma.model2 = glm(Y3.Y6.Abs_Difference ~ Treatment * Gap  + Fenced, family = Gamma, data = richness_df)
 summary(Y3.Y6.gamma.model2)
 par(mfrow = c(2,2))
 plot(Y3.Y6.gamma.model2)
@@ -308,10 +308,10 @@ plot(Y3.Y6.gamma.model2)
 ```{r model_selection_gamma_Y36, echo=TRUE}
 Y3.Y6.gamma.model_selected <-step(Y3.Y6.gamma.model2, scope=~.)
 summary(Y3.Y6.gamma.model_selected)
-# AIC decrease from 1738 to 1695
+# AIC stays at 1679.9
 Y3.Y6.empty_gamma_model <- glm(Y3.Y6.Abs_Difference ~ 1, family = Gamma, data = richness_df)
 anova(Y3.Y6.gamma.model_selected, Y3.Y6.empty_gamma_model, test = "F")
-# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>F) = 4.893e-06
+# the model is significant at 5%, suggest that the coefficient for gap, fenced and the interaction between treatment and gap are not zero, Pr(>F) = 1.957e-09
 ```
 
 ```{r fit_poisson_model_Y36, echo=TRUE}
@@ -327,7 +327,7 @@ abline(0,1,col="red")
 
 
 
-Y3.Y6.poisson.model2 = glm(Y3.Y6.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y3.Y6.poisson.model2 = glm(Y3.Y6.Abs_Difference~ Treatment * Gap  + Fenced, family = poisson, data = richness_df)
 summary(Y3.Y6.poisson.model2)
 par(mfrow = c(2,2))
 plot(Y3.Y6.poisson.model2)
@@ -336,28 +336,28 @@ plot(Y3.Y6.poisson.model2)
 ```{r model_selection_poisson_Y36, echo=TRUE}
 Y3.Y6.poisson.model_selected <-step(Y3.Y6.poisson.model2, scope=~.)
 summary(Y3.Y6.poisson.model_selected)
-#AIC decrease from 1730 to 1713
+#AIC stays at 1561.1
 Y3.Y6.empty_poisson_model <- glm(Y3.Y6.Abs_Difference ~ 1, family = poisson, data = richness_df)
 anova(Y3.Y6.poisson.model_selected, Y3.Y6.empty_poisson_model, test = "Chi")
-# the model is significant at 5%, suggest that the coefficient for treatment and gap is not zero, Pr(>F) = 1.121e-10
+# the model is significant at 5%, suggest that the coefficient for gap, fenced and interaction between tratemnt and gap are not zero, Pr(>Chi) = < 2.2e-16 
 ```
 
-**we still choose gaussian model, since it has lowest AIC of 1650**
+**we still choose poisson model, since it has lowest AIC of 1561.1**
 
 ## diffrent modeling via prediction for yr3 to yr6
 ```{r model_prediction_gaussian_Y36, echo=TRUE}
-Y3.Y6.guass.model2 = glm(X6 ~ X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y3.Y6.guass.model2 = glm(X6 ~ X3 + Treatment  * Gap  + Fenced, family = gaussian, data = richness_df)
 summary(Y3.Y6.guass.model2)
 par(mfrow = c(2,2))
 plot(Y3.Y6.guass.model2)
 
-Y3.Y6.gamma.model3 = glm(X6 ~ X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y3.Y6.gamma.model3 = glm(X6 ~ X3 + Treatment * Gap  + Fenced, family = Gamma, data = richness_df)
 summary(Y3.Y6.gamma.model3)
 par(mfrow = c(2,2))
 
 plot(Y3.Y6.gamma.model3)
 
-Y3.Y6.poisson.model3 = glm(X6 ~ X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y3.Y6.poisson.model3 = glm(X6 ~ X3 + Treatment * Gap + + Fenced, family = poisson, data = richness_df)
 summary(Y3.Y6.poisson.model3)
 par(mfrow = c(2,2))
 
@@ -374,7 +374,7 @@ summary(Y3.Y6.select_gamma.model3)
 Y3.Y6.select_poisson.model3 <- step(Y3.Y6.poisson.model3, scope=~.)
 summary(Y3.Y6.select_poisson.model3)
 
-# if we use the AIC to choose the model, we will choose the gamma model, it yields the lowest AIC of 1538
+# if we use the AIC to choose the model, we will choose the gamma model, it yields the relatively AIC of 1535.6 and dispersion parameter as 1
 ```
 
 
@@ -394,22 +394,22 @@ samp.pct <- (1:n-0.5)/n
 qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(richness_df$Y0.Y6.Difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main = 'Q-Q plot Guassian')
 abline(0,1,col="red")
 
-Y0.Y6.guass.model = glm(Y0.Y6.Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y0.Y6.guass.model = glm(Y0.Y6.Difference ~ Treatment * Gap  + Fenced, family = gaussian, data = richness_df)
 summary(Y0.Y6.guass.model)
 par(mfrow = c(2,2))
 
 plot(Y0.Y6.guass.model)
 Y0.Y6.pure.guass.model <- glm(Y0.Y6.Difference ~ 1, family = gaussian, data = richness_df)
 anova(Y0.Y6.pure.guass.model, Y0.Y6.guass.model, test = "F")
-# In model fitting, the intercept, gap and some quadrates number are statistically significant, but when we use F-stats to test the H0: all the coefficient is zero, it states that we fail to reject null at 5% significance level
-# Pr(>F) = 0.2032
+# In model fitting, the intercept, gap and some quadrates number are statistically significant, but when we use F-stats to test the H0: all the coefficient is zero, it states that we reject null at 5% significance level
+# Pr(>F) = 0.02073 
 ```
 
 
 ```{r model_selection_guassian_Y06, echo=TRUE}
 Y0.Y6.guass.model_selected <-step(Y0.Y6.guass.model, scope=~.)
 summary(Y0.Y6.guass.model_selected)
-# only treatment radial is significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 1642 to 1610
+# only treatment radial is significant, all other factor is not significant in predicting the yr_richness_difference, AIC decreases from 1614.7 to 1610
 anova(Y0.Y6.guass.model_selected, Y0.Y6.pure.guass.model,test = "F")
 # the selected model states that the treatment and gap is related to the richness, although only treatment radial is significant
 #Pr(>F) = 0.004403
@@ -428,7 +428,7 @@ qqplot(x=qgamma(samp.pct,gamma.alpha, gamma.beta), y=sort(richness_df$Y0.Y6.Abs_
 abline(0,1,col="red")
 
 
-Y0.Y6.gamma.model2 = glm(Y0.Y6.Abs_Difference ~ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y0.Y6.gamma.model2 = glm(Y0.Y6.Abs_Difference ~ Treatment  * Gap  + Fenced, family = Gamma, data = richness_df)
 summary(Y0.Y6.gamma.model2)
 par(mfrow = c(2,2))
 plot(Y0.Y6.gamma.model2)
@@ -438,7 +438,7 @@ plot(Y0.Y6.gamma.model2)
 ```{r model_selection_gamma_Y06, echo=TRUE}
 Y0.Y6.gamma.model_selected <-step(Y0.Y6.gamma.model2, scope=~.)
 summary(Y0.Y6.gamma.model_selected)
-# AIC decrease from 1701 to 1661
+# AIC decrease from 1666 to 1661
 Y0.Y6.empty_gamma_model <- glm(Y0.Y6.Abs_Difference ~ 1, family = Gamma, data = richness_df)
 anova(Y0.Y6.gamma.model_selected, Y0.Y6.empty_gamma_model, test = "F")
 # the model is significant at 5%, suggest that the coefficient for treatment is not zero, Pr(>F) = 0.004019
@@ -457,7 +457,7 @@ abline(0,1,col="red")
 
 
 
-Y0.Y6.poisson.model2 = glm(Y0.Y6.Abs_Difference~ Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y0.Y6.poisson.model2 = glm(Y0.Y6.Abs_Difference~ Treatment * Gap + Fenced, family = poisson, data = richness_df)
 summary(Y0.Y6.poisson.model2)
 par(mfrow = c(2,2))
 plot(Y0.Y6.poisson.model2)
@@ -466,7 +466,7 @@ plot(Y0.Y6.poisson.model2)
 ```{r model_selection_poisson_Y06, echo=TRUE}
 Y0.Y6.poisson.model_selected <-step(Y0.Y6.poisson.model2, scope=~.)
 summary(Y0.Y6.poisson.model_selected)
-#AIC decrease from 1663 to 1640
+#AIC decrease from 1664 to 1640
 Y0.Y6.empty_poisson_model <- glm(Y0.Y6.Abs_Difference ~ 1, family = poisson, data = richness_df)
 anova(Y0.Y6.poisson.model_selected, Y0.Y6.empty_poisson_model, test = "Chi")
 # the model is significant at 5%, suggest that the coefficient for treatment is not zero at 5% significance level, Pr(>F) = 0.0003047
@@ -477,18 +477,18 @@ anova(Y0.Y6.poisson.model_selected, Y0.Y6.empty_poisson_model, test = "Chi")
 
 ## diffrent modeling via prediction for yr0 to yr6 (not include X3)
 ```{r model_prediction_gaussian_Y06, echo=TRUE}
-Y0.Y6.guass.model2 = glm(X6 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y0.Y6.guass.model2 = glm(X6 ~ X0 + Treatment * Gap  + Fenced, family = gaussian, data = richness_df)
 summary(Y0.Y6.guass.model2)
 par(mfrow = c(2,2))
 plot(Y0.Y6.guass.model2)
 
-Y0.Y6.gamma.model3 = glm(X6 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y0.Y6.gamma.model3 = glm(X6 ~ X0 + Treatment * Gap + Fenced, family = Gamma, data = richness_df)
 summary(Y0.Y6.gamma.model3)
 par(mfrow = c(2,2))
 
 plot(Y0.Y6.gamma.model3)
 
-Y0.Y6.poisson.model3 = glm(X6 ~ X0 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y0.Y6.poisson.model3 = glm(X6 ~ X0 + Treatment * Gap  + Fenced, family = poisson, data = richness_df)
 summary(Y0.Y6.poisson.model3)
 par(mfrow = c(2,2))
 
@@ -505,24 +505,24 @@ summary(Y0.Y6.select_gamma.model3)
 Y0.Y6.select_poisson.model3 <- step(Y0.Y6.poisson.model3, scope=~.)
 summary(Y0.Y6.select_poisson.model3)
 
-# if we use the AIC to choose the model, we will choose the poisson model, it yields the lowest AIC of 1514, in the poisson model, all the treatment, X0, Gap and Fence are significant in predicting the X6 richness at 5% significance level.
+# if we use the AIC to choose the model, we will choose the poisson model, it yields the lowest AIC of 1513, in the poisson model, all the treatment, X0, Gap and Fence, and the interaction term between treatment and gap are significant in predicting the X6 richness at 5% significance level.
 #both treatment factor are negative.
 ```
 
 ## diffrent modeling via prediction for yr0 to yr6 (include X3)
 ```{r model_prediction_gaussian_Y036, echo=TRUE}
-Y0.Y6.guass.model3 = glm(X6 ~ X0 + X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = gaussian, data = richness_df)
+Y0.Y6.guass.model3 = glm(X6 ~ X0 + X3 + Treatment * Gap  + Fenced, family = gaussian, data = richness_df)
 summary(Y0.Y6.guass.model3)
 par(mfrow = c(2,2))
 plot(Y0.Y6.guass.model3)
 
-Y0.Y6.gamma.model4 = glm(X6 ~ X0 + X3+ Treatment  + Gap + Quadrat.Number + Fenced, family = Gamma, data = richness_df)
+Y0.Y6.gamma.model4 = glm(X6 ~ X0 + X3+ Treatment * Gap  + Fenced, family = Gamma, data = richness_df)
 summary(Y0.Y6.gamma.model4)
 par(mfrow = c(2,2))
 
 plot(Y0.Y6.gamma.model4)
 
-Y0.Y6.poisson.model4 = glm(X6 ~ X0 + X3 + Treatment  + Gap + Quadrat.Number + Fenced, family = poisson, data = richness_df)
+Y0.Y6.poisson.model4 = glm(X6 ~ X0 + X3 + Treatment * Gap  + Fenced, family = poisson, data = richness_df)
 summary(Y0.Y6.poisson.model4)
 par(mfrow = c(2,2))
 
@@ -539,12 +539,12 @@ summary(Y0.Y6.select_gamma.model4)
 Y0.Y6.select_poisson.model4 <- step(Y0.Y6.poisson.model4, scope=~.)
 summary(Y0.Y6.select_poisson.model4)
 
-# if we use the AIC to choose the model, we will choose the poisson model, it yields the lowest AIC of 1508, in the poisson model, both X0 and X3, treatment, Gap and Fence are significant in predicting the richness of X6 at 5% significance level.
+# if we use the AIC to choose the model, we will choose the poisson model, it yields the lowest AIC of 1504, in the poisson model, both X0 and X3, treatment, Gap and Fence, and interaction between treatment and gap are significant in predicting the richness of X6 at 5% significance level.
 #Both treatment state a negative effect on richness increase
 ```
 
 ```{r model_selection_prediction_gaussian_log_glmer, echo=TRUE}
-Y0.Y6.glmer.poiss1= glmer(X6 ~ X0 + X3 + Treatment  + Gap + Quadrat.Number + Fenced+ (1|Plot.Number), family = poisson, data = richness_df)
+Y0.Y6.glmer.poiss1= glmer(X6 ~ X0 + X3 + Treatment * Gap + Fenced+ (1|Plot.Number), family = poisson, data = richness_df)
 summary(Y0.Y6.glmer.poiss1)
 print(Y0.Y6.glmer.poiss1, correlation=TRUE)
 
@@ -552,27 +552,27 @@ print(Y0.Y6.glmer.poiss1, correlation=TRUE)
 plot(Y0.Y6.glmer.poiss1)
 plot(Y0.Y6.glmer.poiss1, resid(., scaled=TRUE) ~ fitted(.), abline = 0,pch=16,col=richness_df$Plot.Number,xlab="Fitted values",ylab="Standardised residuals")
 
-
 qqnorm(resid(Y0.Y6.glmer.poiss1),pch=16,col=richness_df$Plot.Number)
 qqline(resid(Y0.Y6.glmer.poiss1))
 
 
-anova(Y0.Y6.glmer.poiss1, Y0.Y3.select_poisson.model3)
+anova(Y0.Y6.glmer.poiss1, Y0.Y6.poisson.model4)
+# (1|Plot.Number) is significant, p-value = 1.183e-11
 
-
-Y0.Y6.glmer.poiss2= glmer(X6 ~ X0 + X3 + Treatment  + Gap + Quadrat.Number + Fenced + (1|Plot.Number) + (X0|Plot.Number), family = poisson, data = richness_df)
+Y0.Y6.glmer.poiss2= glmer(X6 ~ X0 + X3 + Treatment * Gap + Fenced + (1|Plot.Number) + (X0|Plot.Number), family = poisson, data = richness_df)
 summary(Y0.Y6.glmer.poiss2)
 par(mfrow = c(2,2))
 plot(Y0.Y6.glmer.poiss2)
 anova(Y0.Y6.glmer.poiss2,Y0.Y6.glmer.poiss1,  test = "Chi")
+#(X0|Plot.Number) is not significant, p-value = 0.8019
 
-Y0.Y6.glmer.poiss3= glmer(X6 ~ X0 + X3 + Treatment  + Gap + Quadrat.Number + Fenced + (1|Plot.Number)+ (1|Quadrat.Number), family = poisson, data = richness_df)
+Y0.Y6.glmer.poiss3= glmer(X6 ~ X0 + X3 + Treatment * Gap  + Fenced + (1|Plot.Number)+ (1|Quadrat.Number), family = poisson, data = richness_df)
 summary(Y0.Y6.glmer.poiss3)
 print(Y0.Y6.glmer.poiss3, correlation=TRUE)
 par(mfrow = c(2,2))
 plot(Y0.Y6.glmer.poiss3)
 anova(Y0.Y6.glmer.poiss3, Y0.Y6.glmer.poiss1)
-
+#(1|Quadrat.Number) is not significant, with p-value = 1
 
 # according to the Chisq, we will choose the poisson model with the random effect of (1|plot.number)
 
