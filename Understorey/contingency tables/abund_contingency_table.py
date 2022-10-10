@@ -43,7 +43,6 @@ lf_abund = df.groupby(
                              'Fenced',
                              'Gap',
                              'Life Form',
-                             'Species Name',
                              'Year']).sum()
 
 
@@ -77,7 +76,7 @@ if quads and plots:
 ####################
 # Convert to table #
 ####################
-'''
+
 lf_abund = lf_abund['Abundance']
 
 rows = lf_abund.index.droplevel(lf_abund.index.names[-2:])
@@ -113,7 +112,7 @@ matrix_lf_abund.sort_index(inplace=True)
 matrix_lf_abund_rel = matrix_lf_abund.divide(matrix_lf_abund.sum(axis=1), axis=0)
 
 
-matrix_lf_abund.to_csv('./output/midpoint/abundance/lf_abund_treatment.csv')
+#matrix_lf_abund.to_csv('./output/midpoint/abundance/lf_abund_treatment.csv')
 
 
 # Format for analysis
@@ -145,3 +144,4 @@ matrix = pd.DataFrame(0, index=rows, columns=cols)
 for i in lf_abund.index:
     matrix.at[i[:-1],i[-1]] = lf_abund.loc[i]
 
+'''
