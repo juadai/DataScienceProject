@@ -3,6 +3,7 @@
 library(rstudioapi)
 library(pROC)
 library(lme4)
+library(merTools)
 library(lmerTest)
 
 setwd(dirname(getActiveDocumentContext()$path))
@@ -53,7 +54,46 @@ diversity_Y3_03$call
 anova(diversity_Y3_03, diversity_Y3_02, test='Chi')
 # Can't take the smaller model - Treatment, Treatment:Gap, Fenced are significant
 summary(diversity_Y3_02)
+plot(diversity_Y3_02)
 
+RSS <- sum((diversity_df$X3 - fitted(diversity_Y3_02, diversity_df))^2)
+TSS <- sum((diversity_df$X3 - mean(diversity_df$X3))^2)
+R2 <- 1-RSS/TSS
+R2
+
+
+# TRYING TO SHOW THAT THE MODEL IS NOT ADEQUATE
+X1 <- data.frame(
+  'Treatment'='Control',
+  'Gap'=FALSE,
+  'Fenced'=FALSE,
+  'X0'=seq(0,3,0.1)
+)
+
+point_est <- predict(diversity_Y3_02, newdata=X1, se.fit=T)
+lower_ci = point_est$fit - 1.96*pr$se.fit
+upper_ci = point_est$fit + 1.96*pr$se.fit
+
+
+plot(seq(0,3,0.1),point_est$fit, type='l', ylim=c(0,3),
+     main='Control Plot - Estimated Diversity',
+     xlab='Diversity at Year 0', ylab='Diversity at Year 6')
+lines(seq(0,3,0.1), lower_ci, lty='dashed')
+lines(seq(0,3,0.1), upper_ci, lty='dashed')
+
+x <- diversity_df[diversity_df$Treatment=='Control' &
+                    diversity_df$Gap ==F &
+                    diversity_df$Fenced==F,]$X0
+
+y <- diversity_df[diversity_df$Treatment=='Control' &
+                    diversity_df$Gap ==F &
+                    diversity_df$Fenced==F,,]$X3
+points(x,y, cex=0.5)
+
+
+
+
+# Try incorporating mixed effects
 
 
 mixed_Y3_01 <- lmer(X3 ~ X0 + Treatment + Gap + Fenced + X0:Gap + Treatment:Gap +
@@ -65,7 +105,9 @@ coef(mixed_Y3_01)
 
 plot(mixed_Y3_01)
 
-RSS <- sum((diversity_df$X3 - fitted(mixed_Y3_01, diversity_df))^2)
+mixed_Y3_02 <- get_model(step(mixed_Y3_01)
+
+RSS <- sum((diversity_df$X3 - fitted(mixed_Y3_02, diversity_df))^2)
 TSS <- sum((diversity_df$X3 - mean(diversity_df$X3))^2)
 R2 <- 1-RSS/TSS
 R2
