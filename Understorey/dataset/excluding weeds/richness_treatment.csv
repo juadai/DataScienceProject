@@ -1,0 +1,11 @@
+Treatment,Fenced,Gap,0,3,6
+Control,False,False,54,62,83
+Control,False,True,31,35,29
+Gap,False,False,36,49,53
+Gap,False,True,40,58,55
+Gap,True,False,26,37,39
+Gap,True,True,32,39,43
+Radial,False,False,36,26,46
+Radial,False,True,48,46,59
+Radial,True,False,25,26,26
+Radial,True,True,29,42,44

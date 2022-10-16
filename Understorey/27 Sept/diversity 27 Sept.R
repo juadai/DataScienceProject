@@ -71,8 +71,8 @@ X1 <- data.frame(
 )
 
 point_est <- predict(diversity_Y3_02, newdata=X1, se.fit=T)
-lower_ci = point_est$fit - 1.96*pr$se.fit
-upper_ci = point_est$fit + 1.96*pr$se.fit
+lower_ci = point_est$fit - 1.96*point_est$se.fit
+upper_ci = point_est$fit + 1.96*point_est$se.fit
 
 
 plot(seq(0,3,0.1),point_est$fit, type='l', ylim=c(0,3),
