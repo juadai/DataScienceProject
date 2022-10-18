@@ -254,3 +254,17 @@ plot(DBHdatarm[DBHdatarm$Treatment != "T2: Radial", "DBH.year.0"], DBHdatarm[DBH
 
 plot(DBHdatarm[DBHdatarm$Treatment != "T1: Gap", "DBH.year.0"], DBHdatarm[DBHdatarm$Treatment != "T1: Gap", "DBH.year.6"], col = DBHdatarm[DBHdatarm$Treatment != "T1: Gap", "Treatment"])
 ```
+
+
+
+Nick's additional code to test T2 > T1:
+```{r}
+library(car)
+
+# Matrix to set up the hypothesis 
+# H0: Beta_T1 - Beta_T2 = 0
+C <- matrix(c(0,0,1,-1,0,0),1,6)
+
+linearHypothesis(mixed2.0, C)
+# We don't reject H0 at a 5% or 10% significance level
+```
