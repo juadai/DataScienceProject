@@ -1,5 +1,6 @@
 library(rstudioapi)
 library(pROC)
+
 library(lme4)
 library(lmerTest)
 
@@ -33,6 +34,19 @@ summary(richness_Y3_02)
 
 pchisq(263.32, 260, lower=F)
 # Passes goodness-of-fit test
+
+library(car)
+C <- matrix(c(0,0,1,,1,1,0), nrow=1)
+linearHypothesis(richness_Y3_02, C)
+# No difference between (T1, In gap) and (Control, Not in gap)
+
+C <- matrix(c(0,0,0,1,1,0,1), nrow=1)
+linearHypothesis(richness_Y3_02, C)
+# No difference between (T2, In gap) and (Control, Not in gap)
+
+C <- matrix(c(0,0,1,-1,0,1,-1), nrow=1)
+linearHypothesis(richness_Y3_02, C)
+# No difference between treatments
 
 ########################################
 # Richness Modeling: Year 3: Y6 ~ Pois #
