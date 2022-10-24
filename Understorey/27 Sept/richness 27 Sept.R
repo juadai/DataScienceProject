@@ -161,3 +161,24 @@ plot(model2)
 
 # Not good - residuals are too large, very little correlation
 
+
+
+# Try mixed effects
+
+richness_Y3_01 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1|Plot.Number), 
+                      family='poisson', data=richness_df)
+plot(richness_Y3_01)
+
+summary(richness_Y3_01)
+richness_Y3_02 <- get_model(step(richness_Y3_01))
+
+
+
+richness_Y6_01 <- glmer(X6~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1|Plot.Number), 
+                        family='poisson', data=richness_df)
+plot(richness_Y6_01)
+
+summary(richness_Y3_01)
+richness_Y6_02 <- get_model(step(richness_Y6_01))
+
+

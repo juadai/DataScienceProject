@@ -105,7 +105,7 @@ coef(mixed_Y3_01)
 
 plot(mixed_Y3_01)
 
-mixed_Y3_02 <- get_model(step(mixed_Y3_01)
+mixed_Y3_02 <- get_model(step(mixed_Y3_01))
 
 RSS <- sum((diversity_df$X3 - fitted(mixed_Y3_02, diversity_df))^2)
 TSS <- sum((diversity_df$X3 - mean(diversity_df$X3))^2)
@@ -136,14 +136,41 @@ anova(diversity_Y6_03, diversity_Y6_02, test='Chi')
 
 summary(diversity_Y6_02)
 
-
 RSS <- sum((diversity_df$X6 - fitted(diversity_Y6_02, diversity_df))^2)
 TSS <- sum((diversity_df$X6 - mean(diversity_df$X6))^2)
 R2 <- 1-RSS/TSS
 R2
 
 
+# Try incorporating mixed effects
+
+mixed_Y6_01 <- lmer(X6 ~ (X0 + X3 + Treatment + Gap + Fenced)^2 +
+                      (1 | Plot.Number), data = diversity_df)
+summary(mixed_Y6_01)
+anova(mixed_Y3_01, diversity_Y3_02)
+colnames(diversity_df)
+coef(mixed_Y3_01)
+
+plot(mixed_Y3_01)
+
+mixed_Y6_02 <- get_model(step(mixed_Y6_01))
+
+summary(mixed_Y6_02)
+
+RSS <- sum((diversity_df$X6 - fitted(mixed_Y6_02, diversity_df))^2)
+TSS <- sum((diversity_df$X6 - mean(diversity_df$X6))^2)
+R2 <- 1-RSS/TSS
+R2
+
+
+
+
+
 diversity_df
+
+
+
+
 
 diversity_0 <- cbind(diversity_df[1:5],diversity_df[6])
 diversity_0['Year']=0
