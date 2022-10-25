@@ -168,17 +168,25 @@ plot(model2)
 richness_Y3_01 <- glmer(X3 ~ (X0 + Treatment + Gap + Fenced)^2 + (1|Plot.Number), 
                       family='poisson', data=richness_df)
 plot(richness_Y3_01)
-
+AIC(richness_Y3_01)
 summary(richness_Y3_01)
-richness_Y3_02 <- get_model(step(richness_Y3_01))
 
-
+richness_Y3_02 <- glmer(X3 ~ (X0 + Treatment + Gap)^2 - X0:Treatment + (1|Plot.Number), 
+                        family='poisson', data=richness_df)
+plot(richness_Y3_02)
+AIC(richness_Y3_02)
+summary(richness_Y3_02)
 
 richness_Y6_01 <- glmer(X6~ (X0 + X3 + Treatment + Gap + Fenced)^2 + (1|Plot.Number), 
                         family='poisson', data=richness_df)
 plot(richness_Y6_01)
-
+AIC(richness_Y6_01)
 summary(richness_Y3_01)
-richness_Y6_02 <- get_model(step(richness_Y6_01))
+
+richness_Y6_02 <- glmer(X6~ (X0 + X3 + Treatment + Gap + Fenced)^2 - X0:X3- X0:Treatment - Treatment:Gap - X0:Fenced - X0:Gap - X3:Gap - Treatment:Fenced - Gap:Fenced + (1|Plot.Number), 
+                        family='poisson', data=richness_df)
+plot(richness_Y6_02)
+AIC(richness_Y6_02)
+summary(richness_Y6_02)
 
 
