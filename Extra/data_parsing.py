@@ -20,7 +20,8 @@ def read(filename):
             idx_empty_rows = sheet[sheet.isnull().all(axis=1)].index.to_list()
             end_of_first_block = idx_empty_rows[0]
         
-            return sheet.loc[:, 'Statistic':'total study area'], idx_parcel[0], idx_veg[0], idx_covenant[0], end_of_first_block
+            # return sheet.loc[:, 'Statistic':'total study area'], idx_parcel[0], idx_veg[0], idx_covenant[0], end_of_first_block
+            return sheet.loc[:, 'Statistic':'median'], idx_parcel[0], idx_veg[0], idx_covenant[0], end_of_first_block
   
 def concat_df(lga_name, df, new_data, idx_parcel, idx_veg, idx_covenant, end_of_first_block):
     """
@@ -57,18 +58,17 @@ def write_to_excel(df):
                         'min': 'Min',
                         'max': 'Max',
                         'mean': 'Mean',
-                        'median': 'Median',
-                        'total study area': 'Total Study Area'}, inplace=True)
+                        'median': 'Median'
+                        # 'total study area': 'Total Study Area'
+                    }, inplace=True)
     
-    df.to_excel("output_haha.xlsx", sheet_name="Final Deliverable", index=False) 
+    df.to_excel("output.xlsx", sheet_name="Final Deliverable", index=False) 
 
 def main():
     list_subfolders_paths = [f.path for f in os.scandir('.') if f.is_dir()]
-    print(list_subfolders_paths)
 
     if len(list_subfolders_paths) > 0:
         first_path = list_subfolders_paths[0]
-        first_path = './18Alpine'
         for f in os.scandir(first_path):
             if f.is_file() and f.name.endswith('.xlsx'):   #only process excel files
                 lga_name = get_lga_name(f)
