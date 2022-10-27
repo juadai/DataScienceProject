@@ -5,15 +5,21 @@ output:
   html_document: default
 ---
 
-# data preparation
+This file contains the final model and all its visualisations. The content is identical to Tree model result interpretation in the report.
+
+# load packages
 ```{r}
 setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
-# load data
-data = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
+library(lme4)
+library(merTools)
 ```
 
-only extract DBH-related data for DBH modelling
+# data preparation
 ```{r}
+# load data
+data = read.csv("datasets/all_plots.csv", stringsAsFactors = FALSE)
+
+# only extract DBH-related data for DBH modelling
 DBHdata = data[1:9]
 ```
 
@@ -29,11 +35,10 @@ DBHdata[is.na(DBHdata$DBH.year.6), 1:7] # 9 NAs for "DBH.year.6"
 DBHdata = DBHdata[!is.na(DBHdata$DBH.year.6), ]
 ```
 #------------------------------------------------------------------------------------------
-Referring to lower priority hypotheses: 
-- The rate of natural mortality will be greater in control plots as compared to T1 and T2.
-NOT satisfy: all blank Alive.at.year.6 are in T2:Radial.
+Referring to lower priority hypotheses3.2 (The rate of natural mortality will be greater in control plots as compared to T1 and T2.): 
+NOT satisfied: all blank Alive.at.year.6 are in T2:Radial.
+CANNOT make any conclusion, need more data, revisit this hypothesis in the future.
 #-------------------------------------------------------------------------------------------
-
 ```{r}
 # remove rows with NA in "DBH.year.0"
 DBHdata[is.na(DBHdata$DBH.year.0), 1:7] # 2 NAs for "DBH.year.0"
@@ -51,7 +56,7 @@ DBHdata$Treatment = factor(DBHdata$Treatment)
 DBHdata$Large = factor(DBHdata$Large)
 ```
 
-rows where DBH.year.6 <= DBH.year.0 (tree growth <= 0)
+list rows where DBH.year.6 <= DBH.year.0 (tree growth <= 0)
 ```{r}
 DBHdata[DBHdata$DBH.year.6 <= DBHdata$DBH.year.0, ]
 ```
@@ -63,8 +68,7 @@ DBHdata[DBHdata$DBH.year.6 <= DBHdata$DBH.year.0, ]
 
 # data analysis
 ```{r}
-# points outside the main group
-par(mfrow=c(1,2))
+# visualise and list points outside the main group
 plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6, type = "p", col = factor(DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 0.9 | DBHdata$DBH.year.0 > 80))
 plot(DBHdata$DBH.year.0, DBHdata$DBH.year.6/DBHdata$DBH.year.0, type = "p", col = factor(DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 0.9 | DBHdata$DBH.year.0 > 80), ylab = "gradient")
 DBHdata[DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 0.9 | DBHdata$DBH.year.0 > 80, ]
@@ -74,6 +78,7 @@ DBHdatarm = DBHdata[DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 1.25 & DBHdata$DBH.y
 ```
 
 ```{r}
+# strong correlation between DBH.year.6 and DBH.year.0
 cor(DBHdata$DBH.year.0, DBHdata$DBH.year.6)
 cor(log(DBHdata$DBH.year.0), log(DBHdata$DBH.year.6))
 
@@ -90,15 +95,11 @@ cor(log(DBHdatarm$DBH.year.0), log(DBHdatarm$DBH.year.6))
 ```{r}
 par(mfrow=c(3,4))
 for (i in 1:12) {
-  plot(DBHdata[DBHdata$Plot == i, "DBH.year.0"], DBHdata[DBHdata$Plot == i, "DBH.year.6"], xlab = paste("Plot", i, "DBH.year.0"), ylab = paste("Plot", i, "DBH.year.6"), xlim = c(20,70), ylim = c(20,70), col = DBHdata[DBHdata$Plot == i, "Treatment"])
-  abline(0,1)
-}
-
-for (i in 1:12) {
   plot(log(DBHdata[DBHdata$Plot == i, "DBH.year.0"]), log(DBHdata[DBHdata$Plot == i, "DBH.year.6"]), xlab = paste("Plot", i, "log(DBH.year.0)"), ylab = paste("Plot", i, "log(DBH.year.6)"), xlim = c(3.0,4.3), ylim = c(3.0, 4.3), col = DBHdata[DBHdata$Plot == i, "Treatment"])
   abline(0,1)
 }
 ```
+There's no obvious random intercept or random slope, but we still keep the random intercept term as a reference to human error.
 
 
 
@@ -106,12 +107,11 @@ for (i in 1:12) {
 
 
 # "In Gap" term
-add "InGap" term
 ```{r}
+# add "InGap" term
 DBHdatarm$InGap = (DBHdatarm$Treatment == "T2: Radial" & DBHdatarm$Large == "Yes")
-```
-make InGap factor
-```{r}
+
+# make InGap factor
 DBHdatarm$InGap = factor(DBHdatarm$InGap)
 ```
 
@@ -121,23 +121,22 @@ DBHdatarm$InGap = factor(DBHdatarm$InGap)
 
 
 # current final model
-random effect using InGap for log(DBHdatarm$DBH.year.6)
+mixed effect model for log(DBHdatarm$DBH.year.6) using InGap
 ```{r}
-library(lme4)
 mixed2.0 = lmer(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap+(1|Plot), data = DBHdatarm)
 summary(mixed2.0)
 VarCorr(mixed2.0)
 y.hat <- fitted(mixed2.0) # Fitted values
 int.hat <- ranef(mixed2.0)[[1]][[1]] # Predicted intercepts
 res.hat <- residuals(mixed2.0) # Estimated residuals
-tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
-rss = sum((log(DBHdatarm$DBH.year.6)-y.hat)^2) #RSS
-(tss-rss)/tss #R^2 = 0.9801595
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) # TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-y.hat)^2) # RSS
+(tss-rss)/tss # R^2 = 0.9801595
 ```
 ```{r}
 qqnorm(int.hat, main="Random Intercepts"); qqline(int.hat)
-qqnorm(res.hat, main="Residuals"); qqline(res.hat)
-plot(y.hat, res.hat, xlab="Fitted Values", ylab="Residuals")
+qqnorm(res.hat, main="Normal Q-Q"); qqline(res.hat)
+plot(y.hat, res.hat, xlab="Fitted Values", ylab="Residuals", main = "Residuals vs Fitted")
 abline(h=0, lty=2)
 plot(log(DBHdatarm$DBH.year.6), y.hat, col = DBHdatarm$Treatment)
 abline(0, 1)
@@ -152,62 +151,25 @@ abline(0, 1)
 
 
 
-# visualization
-```{r}
-# add tree growth attribute
-DBHdata$Tree.growth = DBHdata$DBH.year.6-DBHdata$DBH.year.0
-
-# plot tree growth for large VS not-large trees using all data
-plot(DBHdata$DBH.year.0, DBHdata$Tree.growth, col = DBHdata$Large, ylim = c(-10,20))
-legend("topright", legend = c("large", "not large"), fill = c("red", "black"), cex = 0.8)
-
-# plot tree growth for large VS not-large trees across three treatments
-plot(DBHdata[DBHdata$Treatment == "Control", "DBH.year.0"], DBHdata[DBHdata$Treatment == "Control", "Tree.growth"], col = DBHdata[DBHdata$Treatment == "Control", "Large"], xlab = "Control DBH.year.0", ylab = "Control tree growth", ylim = c(-10,20))
-legend("topright", legend = c("large", "not large"), fill = c("red", "black"), cex = 0.8)
-
-plot(DBHdata[DBHdata$Treatment == "T1: Gap", "DBH.year.0"], DBHdata[DBHdata$Treatment == "T1: Gap", "Tree.growth"], col = DBHdata[DBHdata$Treatment == "T1: Gap", "Large"], xlab = "T1 DBH.year.0", ylab = "T1 tree growth", ylim = c(-10,20))
-legend("topright", legend = c("large", "not large"), fill = c("red", "black"), cex = 0.8)
-
-plot(DBHdata[DBHdata$Treatment == "T2: Radial", "DBH.year.0"], DBHdata[DBHdata$Treatment == "T2: Radial", "Tree.growth"], col = DBHdata[DBHdata$Treatment == "T2: Radial", "Large"], xlab = "T2 DBH.year.0", ylab = "T2 tree growth", ylim = c(-10,20))
-legend("topright", legend = c("large", "not large"), fill = c("red", "black"), cex = 0.8)
-```
-
+# visualisations
 ```{r}
 # plot constrains according to mixed2.0
-plot(DBHdatarm$DBH.year.0, DBHdatarm$DBH.year.6, col = DBHdatarm$InGap, xlim = c(20,80))
-abline(v = 52.76, col = "blue") # constrain for T2InGap > T2 not InGap
-abline(v = 57.87, col = "green") # constrain for T2InGap > T1
-abline(v = 74.42, col = "orange") # constrain for T2InGap > Control
-legend("topleft", c("InGap points", "not InGap points", "InGap>T2notInGap constrain", "InGap>T1 constrain", "InGap>Control constrain"), fill = c("black", "red", "blue", "green", "orange"), cex = 0.9)
+plot(DBHdatarm$DBH.year.0, DBHdatarm$DBH.year.6, col = DBHdatarm$InGap, xlim = c(20,80), xlab = "DBH at Year 0", ylab = "DBH at Year 6", main = "Constraints in the final model")
+abline(v = 52.76, col = "blue") # constraint for T2InGap > T2 not InGap
+abline(v = 57.87, col = "green") # constraint for T2InGap > T1
+abline(v = 74.42, col = "orange") # constraint for T2InGap > Control
+legend("topleft", legend = c("InGap points", "not InGap points", "InGap>T2notInGap constrain", "InGap>T1 constrain", "InGap>Control constrain"), fill = c("black", "red", "blue", "green", "orange"), cex = 0.9, bty='n')
 ```
 Interpretation for the constrains: sparse data in the constrain region, so the fitted model cannot explain well. If more data is obtained in the future, results would be more realistic.
 
 ```{r}
-library(merTools)
-X_ingap <- data.frame('DBH.year.0'=1:100, 'InGap'=TRUE, 'Plot'=6, 'Treatment'='T2: Radial')
-PI_2 <- predictInterval(merMod = mixed2.0, newdata = X_ingap, level = 0.95, n.sims = 1000, stat = "median", type="linear.prediction", include.resid.var = TRUE)
-
-
-for (t in c("Control", "T1: Gap", "T2: Radial")) {
-  X <- data.frame('DBH.year.0'=1:100, 'InGap'=FALSE, 'Plot'=6, 'Treatment'=t)
-  PI <- predictInterval(merMod = mixed2.0, newdata = X, level = 0.95, n.sims = 1000, stat = "median", type="linear.prediction", include.resid.var = TRUE)
-  
-  plot(1:100, exp(PI$fit), type='n', xlim=c(20,60), ylim = c(10,80), xlab = "DBH.year.0", ylab = "predicted DBH.year.6")
-  polygon(c(1:100, 100:1), c(exp(PI$upr), rev(exp(PI$lwr))), col = "light grey", border = "light grey")
-  lines(1:100, exp(PI$fit), type = "l")
-  polygon(c(1:100, 100:1), c(exp(PI_2$upr), rev(exp(PI_2$lwr))), col = rgb(255,0,0, 50, maxColorValue = 255), border = rgb(255,0,0, 50, maxColorValue = 255))
-  lines(1:100, exp(PI_2$fit), type = "l", col = "red")
-  legend("topleft", legend = c("InGap", t), fill = c("red", "black"))
-}
-```
-Here, The first plot InGap VS Control is possibly a useful visualization for the mixed2.0 model to show how InGap increase tree growth compared to Control. The intersections of red lines and black lines in the second and third plot deliver the same information as the vertical constrain lines in the previous plot.
-
-```{r}
+# visualise predicted interval for the three treatments
 treatments = c("Control", "T1: Gap", "T2: Radial")
 shades = c("light grey", rgb(255,0,0, 50, maxColorValue = 255), rgb(0,255,0, 50, maxColorValue = 255))
 colours = c("black", "red", "green")
 
-plot(1:100, exp(PI$fit), type='n', xlim=c(20,60), ylim = c(10,80), xlab = "DBH.year.0", ylab = "predicted DBH.year.6")
+plot(1:100, exp(PI$fit), type='n', xlim=c(20,60), ylim = c(15,60), xlab = "DBH: Year 0", ylab = "Estimated DBH: Year 6",
+     main='Tree Size Model: Treatments vs Control')
 for (i in 1:3) {
   X <- data.frame('DBH.year.0'=1:100, 'InGap'=FALSE, 'Plot'=6, 'Treatment'=treatments[i])
   PI <- predictInterval(merMod = mixed2.0, newdata = X, level = 0.95, n.sims = 1000, stat = "median", type="linear.prediction", include.resid.var = TRUE)
@@ -215,56 +177,83 @@ for (i in 1:3) {
   polygon(c(1:100, 100:1), c(exp(PI$upr), rev(exp(PI$lwr))), col = shades[i], border = shades[i])
   lines(1:100, exp(PI$fit), type = "l", col = colours[i])
 }
-legend("topleft", legend = treatments, fill = colours)
+legend("topleft", legend = c("Control", "T1: Gap", "T2: Radial (Not in gap)", '95% CI'), 
+       lty=c(1,1,1,NA),
+       col= c('black','red','green',NA), bty='n')
+```
+```{r}
+# hypothesis test for T1 = Control
+C <- c(0,0,1,0,0,0)
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 0.0001243, reject H0, so T1 != Control
+
+# hypothesis test for T2 = Control
+C <- c(0,0,0,1,0,0)
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 8.334e-07, reject H0, so T2 != Control
+
+# hypothesis test for T1 = T2
+C <- c(0,0,1,-1,0,0)
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 0.1879, cannot reject H0 at 5% level or 1% level, so keep H0, T1 = T2
 ```
 This plot shows fitted line and 95% predict interval for not-InGap trees in the three treatments.
-The red line(T1) and the green line(T2) are both higher and steeper than the black line(Control), but lines and shaded intervals of T1 and T2 almost completely overlap. 
+The red line(T1) and the green line(T2) are both higher and steeper than the black line(Control), but lines and shaded intervals of T1 and T2 almost completely overlap.
 
-Interpretation for this overlap:
-1. What does these two groups refer to? 
-    -> red: T1 & not-InGap = all T1 trees = trees around the T1gap area + trees not around the T1gap area(which could be considered as naturally distributed as in Control)
-    -> green: T2 & not-InGap = trees except for the one in the middle of the T2radial area = trees around the T2radial area + trees not around the T2radial area.
-No matter it's a T1gap area or a T2radial area, it's always an open space, SO basically, trees in the red groups and in the green groups could be considered as having the same "treatment"(distribution) situations. SO having almost completely overlapping shades and lines is reasonable.
+Results of the hypothesis tests prove the pattern in the plot that T1 or T2 is significantly different from Control, but there's not enough evidence to say that T1 is different from T2 for not-InGap trees.
+
+Interpretation for T1, T2 > Control:
+This responses to hypothesis1.1 (Thinning will increase tree growth in both treatments relative to the control.)
+
+Interpretation for T1 = T2 for not-InGap trees:
+1. What do these two groups refer to? 
+    -> T1 & not-InGap = all T1 trees = trees around the T1gap area + trees not around the T1gap area
+    -> T2 & not-InGap = trees except for the ones in the middle of the T2radial areas = trees around the T2radial area + trees not around the T2radial area.
+No matter it's a T1gap area or a T2radial area, it's always an open space, SO basically, trees in the two groups could be considered as having the same "treatment" situations. SO T1=T2 (i.e. having almost completely overlapping shades and lines) is reasonable.
 2. In the perspective of the estimated parameter values for these two terms:
     -> TreatmentT1: Gap is 0.028683, TreatmentT2: Rad is 0.039231
 Calculating back the log(), T1 contributes exp(0.028683)=1.029 gradient, T2 contributes exp(0.039231)=1.04 gradient. 1.029 is very close to 1.04. Also, intercepts for the lines are very very close to each other as well, SO the red and green lines and their shades are almost completely overlapping is still reasonable.
-3. Compared to Control:
-Despite of how overlapping T1 and T2 are in the plot, one point is obvious: they are both clearly higher and steeper than Control. This gives T1, T2 > Control
-4. Although T1 and T2 only have tiny difference, I think it's still necessary to use the estimated parameter values to conclude that T2 > T1 in terms of tree growth.
-    -> thinking in percentage: For trees starting with the same DBH.year.0 value, being in T1 will have a 2.9% increase in DBH.year.6 value compared to DBH.year.6 in Control; and being in T2 will have a 4% increase in DBH.year.6 value compared to DBH.year.6 in Control. And 2.9% is clearly different from 4%.
+
+Although T1=T2, for hypothesis 1.2 (Thinning will have an increased effect on the rate of tree growth in T2 as compared to T1.) Keep te note: For trees starting with the same DBH.year.0 value, being in T1 will have a 2.9% increase in DBH.year.6 value compared to DBH.year.6 in Control; and being in T2 will have a 4% increase in DBH.year.6 value compared to DBH.year.6 in Control. And 2.9% is clearly different from 4%.
+    
+```{r}
+# visualise predicted interval for InGap VS Control
+X_ingap <- data.frame('DBH.year.0'=30:100, 'InGap'=TRUE, 'Plot'=6, 'Treatment'='T2: Radial')
+PI_2 <- predictInterval(merMod = mixed2.0, newdata = X_ingap, level = 0.95, n.sims = 1000, stat = "median", type="linear.prediction", include.resid.var = TRUE)
+
+X <- data.frame('DBH.year.0'=1:100, 'InGap'=FALSE, 'Plot'=6, 'Treatment'='Control')
+PI <- predictInterval(merMod = mixed2.0, newdata = X, level = 0.95, n.sims = 1000, stat = "median", type="linear.prediction", include.resid.var = TRUE)
+
+plot(1:100, exp(PI$fit), type='n', xlim=c(20,60), ylim = c(15,60), xlab = "DBH: Year 0", ylab = "Estimated DBH: Year 6",
+     main="Tree Size Model: 'In Gap' vs Control")
+
+polygon(c(1:100, 100:1), c(exp(PI$upr), rev(exp(PI$lwr))), col = "light grey", border = "light grey")
+lines(1:100, exp(PI$fit), type = "l")
+polygon(c(30:100, 100:30), c(exp(PI_2$upr), rev(exp(PI_2$lwr))), col = rgb(255,0,0, 50, maxColorValue = 255), border = rgb(255,0,0, 50, maxColorValue = 255))
+lines(30:100, exp(PI_2$fit), type = "l", col = "red")
+legend("topleft", legend = c('Control',"T2: Radial (In gap)", '95% CI'),
+       lty=c(1,1,NA),
+       col= c('black','red','green',NA), bty='n')
+```
+```{r}
+# hypothesis test for InGap = not InGap
+C <- c(0,0,0,0,1,1)
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 1.579e-05, reject H0, so InGap != not InGap
+```
+The plot shows fitted line and 95% predict interval for InGap VS Control. The red line(InGap) is higher than the black line(Control), but shaded intervals have some overlap.
+
+Results of the hypothesis tests says that InGap is significantly different from not-InGap.
+
+Interpretation:
+InGap trees have larger tree gorwth than not InGap trees.
 
 
 
 # other plots
 ```{r}
-plot(DBHdatarm[DBHdatarm$Treatment == "Control", "DBH.year.0"], DBHdatarm[DBHdatarm$Treatment == "Control", "DBH.year.6"], xlim = c(20,70), ylim = c(20,70), xlab = "DBHdatarm$DBH.year.0", ylab = "DBHdatarm$DBH.year.6")
-points(DBHdatarm[DBHdatarm$InGap == TRUE, "DBH.year.0"], DBHdatarm[DBHdatarm$InGap == TRUE, "DBH.year.6"], col = "red")
-legend("bottomright", legend = c("Control", "InGap"), fill = c("black", "red"))
+# add tree growth for visualisation in response to hypothesis2.1&2.2
+DBHdatarm$Tree.growth = DBHdatarm$DBH.year.6-DBHdatarm$DBH.year.0
 
-plot(DBHdatarm[DBHdatarm$Treatment == "T1: Gap", "DBH.year.0"], DBHdatarm[DBHdatarm$Treatment == "T1: Gap", "DBH.year.6"], xlim = c(20,70), ylim = c(20,70), xlab = "DBHdatarm$DBH.year.0", ylab = "DBHdatarm$DBH.year.6")
-points(DBHdatarm[DBHdatarm$InGap == TRUE, "DBH.year.0"], DBHdatarm[DBHdatarm$InGap == TRUE, "DBH.year.6"], col = "red")
-legend("bottomright", legend = c("T1: Gap", "InGap"), fill = c("black", "red"))
-
-plot(DBHdatarm[DBHdatarm$Treatment == "T2: Radial", "DBH.year.0"], DBHdatarm[DBHdatarm$Treatment == "T2: Radial", "DBH.year.6"], xlim = c(20,70), ylim = c(20,70), xlab = "DBHdatarm$DBH.year.0", ylab = "DBHdatarm$DBH.year.6")
-points(DBHdatarm[DBHdatarm$InGap == TRUE, "DBH.year.0"], DBHdatarm[DBHdatarm$InGap == TRUE, "DBH.year.6"], col = "red")
-legend("bottomright", legend = c("T2: Radial", "InGap"), fill = c("black", "red"))
+plot(DBHdatarm$DBH.year.0, DBHdatarm$Tree.growth, col = DBHdatarm$Large, ylim = c(-3,8.5), xlab = "DBH at Year 0", ylab = "Tree growth = DBH.year.6 - DBH.year.0", main = "Comparing tree growth with tree size")
+legend("topleft", legend = c("Large", "not Large"), fill = c("red", "black"), bty='n')
 ```
-```{r}
-plot(DBHdatarm[DBHdatarm$Treatment != "T2: Radial", "DBH.year.0"], DBHdatarm[DBHdatarm$Treatment != "T2: Radial", "DBH.year.6"], col = DBHdatarm[DBHdatarm$Treatment != "T2: Radial", "Treatment"])
-
-plot(DBHdatarm[DBHdatarm$Treatment != "T1: Gap", "DBH.year.0"], DBHdatarm[DBHdatarm$Treatment != "T1: Gap", "DBH.year.6"], col = DBHdatarm[DBHdatarm$Treatment != "T1: Gap", "Treatment"])
-```
+From the plot, large trees will only increase variance in tree growth.
 
 
-
-Nick's additional code to test T2 > T1:
-```{r}
-library(car)
-
-# Matrix to set up the hypothesis 
-# H0: Beta_T1 - Beta_T2 = 0
-C <- matrix(c(0,0,1,-1,0,0),1,6)
-
-linearHypothesis(mixed2.0, C)
-# We don't reject H0 at a 5% or 10% significance level
-```
