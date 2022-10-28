@@ -3,6 +3,7 @@ library(rstudioapi)
 library(pROC)
 library(lme4)
 library(lmerTest)
+library(faraway)
 
 setwd(dirname(getActiveDocumentContext()$path))
 richness_df <- read.csv('../dataset/tables/species_richness_quadrats.csv')
@@ -59,6 +60,14 @@ richness_Y3_04$call
 summary(richness_Y3_02)
 
 pchisq(263.32, 260, lower=F) # Pass
+
+plot(richness_Y3_02)
+
+plot(residuals(richness_Y3_02) ~ predict(richness_Y3_02,type="response"), xlab="Fitted values", ylab="Deviance residuals", main="Richness Y3: Residuals vs Fitted")
+abline(0,0)
+
+library(hnp)
+hnp(richness_Y3_02, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Richness Y3: Half-Normal Plot", pch = 4)
 
 
 ########################################
