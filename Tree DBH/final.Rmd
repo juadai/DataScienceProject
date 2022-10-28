@@ -12,6 +12,7 @@ This file contains the final model and all its visualisations. The content is id
 setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
 library(lme4)
 library(merTools)
+library(car)
 ```
 
 # data preparation
@@ -233,16 +234,17 @@ legend("topleft", legend = c('Control',"T2: Radial (In gap)", '95% CI'),
        col= c('black','red','green',NA), bty='n')
 ```
 ```{r}
-# hypothesis test for InGap = not InGap
-C <- c(0,0,0,0,1,1)
-linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 1.579e-05, reject H0, so InGap != not InGap
+# hypothesis test for InGap = Control
+C <- c(0,0,0,1,1,log(55))
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 0.006618, reject H0 at 1%, for DBH.year.0 <=55, InGap != Control
+C <- c(0,0,0,1,1,log(57))
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 0.0244, reject H0 at 5%
+C <- c(0,0,0,1,1,log(59))
+linearHypothesis(mixed2.0, C) # Pr(>Chisq) = 0.06454, cannot reject H0 at 5%
 ```
 The plot shows fitted line and 95% predict interval for InGap VS Control. The red line(InGap) is higher than the black line(Control), but shaded intervals have some overlap.
 
-Results of the hypothesis tests says that InGap is significantly different from not-InGap.
-
-Interpretation:
-InGap trees have larger tree gorwth than not InGap trees.
+Results of the hypothesis tests gives threshold.
 
 
 
