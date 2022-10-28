@@ -11,6 +11,7 @@ setwd("C:/Users/YUHONG/Documents/R/DataScienceProject")
 library(car)
 library(fitdistrplus)
 library(lme4)
+library(MASS)
 ```
 
 # data preparation
@@ -176,6 +177,29 @@ Problems:
 
 
 #-------------------------------------------------------------------------------------------
+# model2
+data: raw data (DBHdata)
+model: gaussian glm
+response variable: DBH.year.6
+predictors: DBH.year.0, Treatment, Large, DBH.year.0:Large, Treatment:Large
+```{r}
+# best model derived from DBH.year.6~DBH.year.0*Treatment*Large
+model2 = glm(DBH.year.6~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHdata)
+summary(model2)
+
+tss = sum((DBHdata$DBH.year.6-mean(DBHdata$DBH.year.6))^2) # TSS
+rss = sum((DBHdata$DBH.year.6-model2$fitted.values)^2) # RSS
+(tss-rss)/tss # R^2 = 0.9467556
+
+plot(model2)
+plot(DBHdata$DBH.year.6, model2$fitted.values, type = "p", col = DBHdata$Treatment)
+legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0,1)
+```
+
+
+
+#-------------------------------------------------------------------------------------------
 remove outliers
 ```{r}
 # points outside the main group
@@ -191,23 +215,21 @@ DBHdata[DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 1.25 | DBHdata$DBH.year.6/DBHdat
 DBHdatarm = DBHdata[DBHdata$DBH.year.6/DBHdata$DBH.year.0 < 1.25 & DBHdata$DBH.year.6/DBHdata$DBH.year.0 > 0.9 & DBHdata$DBH.year.0 < 80, ]
 ```
 
-# model2
+# model3
 data: remove outliers (DBHdatarm)
 model: gaussian glm
 response variable: log(DBH.year.6)
 predictors: log(DBH.year.0), Treatment, Large, log(DBH.year.0):Large, Treatment:Large
 ```{r}
-model2 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+Large+log(DBH.year.0):Large+Treatment:Large, data = DBHdatarm)
-summary(model2)
+model3 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+Large+log(DBH.year.0):Large+Treatment:Large, data = DBHdatarm)
+summary(model3)
 
-tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
-rss = sum((log(DBHdatarm$DBH.year.6)-model2$fitted.values)^2) #RSS
-(tss-rss)/tss #R^2 = 0.9783684
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) # TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-model3$fitted.values)^2) # RSS
+(tss-rss)/tss # R^2 = 0.9783684
 
-#par(mfrow=c(2,2))
-plot(model2)
-#par(mfrow=c(1,1))
-plot(log(DBHdatarm$DBH.year.6), model2$fitted.values, type = "p", col = DBHdatarm$Treatment)
+plot(model3)
+plot(log(DBHdatarm$DBH.year.6), model3$fitted.values, type = "p", col = DBHdatarm$Treatment)
 legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
 abline(0,1)
 ```
@@ -225,27 +247,22 @@ plot(DBHdatarm$DBH.year.0, DBHdatarm$DBH.year.6, type = "p", col = DBHdatarm$InG
 legend("bottomright", legend = c("InGap trees", "not InGap trees"), fill = c("red", "black"), bty='n')
 ```
 
-# model3
+# model3 using InGap - model3.2
 data: remove outliers (DBHdatarm)
 model: gaussian glm
 response variable: log(DBH.year.6)
 predictors: log(DBH.year.0), Treatment, InGap, log(DBH.year.0):InGap
 ```{r}
-model3 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap, data = DBHdatarm)
-summary(model3)
+model3.2 = glm(log(DBH.year.6)~log(DBH.year.0)+Treatment+InGap+log(DBH.year.0):InGap, data = DBHdatarm)
+summary(model3.2)
 
-tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) #TSS
-rss = sum((log(DBHdatarm$DBH.year.6)-model3$fitted.values)^2) #RSS
-(tss-rss)/tss #R^2 = 0.9786269
+tss = sum((log(DBHdatarm$DBH.year.6)-mean(log(DBHdatarm$DBH.year.6)))^2) # TSS
+rss = sum((log(DBHdatarm$DBH.year.6)-model3.2$fitted.values)^2) # RSS
+(tss-rss)/tss # R^2 = 0.9786269
 
-#par(mfrow=c(2,2))
-plot(model3)
-#par(mfrow=c(1,1))
-plot(log(DBHdatarm$DBH.year.6), model3$fitted.values, type = "p", col = DBHdatarm$Treatment)
+plot(model3.2)
+plot(log(DBHdatarm$DBH.year.6), model3.2$fitted.values, type = "p", col = DBHdatarm$Treatment)
 legend("bottomright", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
-abline(0,1)
-plot(log(DBHdatarm$DBH.year.6), model3$fitted.values, type = "p", col = DBHdatarm$InGap)
-legend("bottomright", legend = c("not In Gap", "In Gap"), fill = c("black", "red"))
 abline(0,1)
 ```
 
@@ -307,7 +324,30 @@ plot(log(DBHpositiverm$Tree.growth), model1.1$fitted.values, type = "p", col = D
 abline(0, 1)
 ```
 
-glm with gamma link for DBHpositive$Tree.growth
+boxcox transformation on DBHpositive$Tree.growth
+```{r}
+b = boxcox(DBHpositive$Tree.growth~1, lambda = seq(0, 0.5, 0.05))
+lambda = b$x[which.max(b$y)]
+DBHpositive$Tree.growth.boxcox = (DBHpositive$Tree.growth^lambda-1)/lambda
+```
+```{r}
+model1.2 = glm(Tree.growth.boxcox~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large, data = DBHpositive)
+summary(model1.2)
+
+tss = sum((DBHpositive$Tree.growth.boxcox-mean(DBHpositive$Tree.growth.boxcox))^2) # TSS
+rss = sum((DBHpositive$Tree.growth.boxcox-model1.2$fitted.values)^2) # RSS
+(tss-rss)/tss # R^2 = 0.3642381
+
+plot(model1.2)
+plot(DBHpositive$Tree.growth.boxcox, model1.2$fitted.values, type = "p", col = DBHpositive$Treatment, main = "Fitted vs Actual (color Treatment)")
+legend("topleft", legend = c("Control", "T1", "T2"), fill = c("black", "red", "green"))
+abline(0, 1)
+plot(DBHpositive$Tree.growth.boxcox, model1.2$fitted.values, type = "p", col = DBHpositive$Large, main = "Fitted vs Actual (color Large)")
+legend("topleft", legend = c("not-large", "large"), fill = c("black", "red"))
+abline(0, 1)
+```
+
+glm with gamma link for DBHpositiverm$Tree.growth
 ```{r}
 # DBHpositive$Tree.growth is close to gamma distribution with a diverging tail
 descdist(DBHpositive$Tree.growth)
@@ -321,18 +361,19 @@ cdfcomp(fitdis3, legendtext = "Gamma")
 ppcomp(fitdis3, legendtext = "Gamma")
 ```
 ```{r}
+# remove large outliers to exclude the diverging tail shown in the section above
 DBHpositiverm = DBHpositive[DBHpositive$Tree.growth <= 10 & DBHpositive$DBH.year.0 < 80, ]
 
 # best model derived from step(Tree.growth~DBH.year.0*Treatment*Large)
-model1.2 = glm(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Treatment+DBH.year.0:Large, family = "Gamma", data = DBHpositiverm)
-summary(model1.2)
+model1.3 = glm(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Treatment+DBH.year.0:Large, family = "Gamma", data = DBHpositiverm)
+summary(model1.3)
 
 tss = sum((DBHpositiverm$Tree.growth-mean(DBHpositiverm$Tree.growth))^2) # TSS
-rss = sum((DBHpositiverm$Tree.growth-model1.2$fitted.values)^2) # RSS
+rss = sum((DBHpositiverm$Tree.growth-model1.3$fitted.values)^2) # RSS
 (tss-rss)/tss # R^2 = 0.4002613
 
-plot(model1.2)
-plot(DBHpositiverm$Tree.growth, model1.2$fitted.values, type = "p", col = DBHpositiverm$Treatment)
+plot(model1.3)
+plot(DBHpositiverm$Tree.growth, model1.3$fitted.values, type = "p", col = DBHpositiverm$Treatment)
 abline(0, 1)
 ```
 
@@ -340,11 +381,11 @@ mixed effect model
 ```{r}
 DBHpositiverm = DBHpositive[DBHpositive$Tree.growth <= 10 & DBHpositive$DBH.year.0 < 80, ]
 
-model1.3 = lmer(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHpositiverm)
-summary(model1.3)
-y.hat <- fitted(model1.3) # Fitted values
-int.hat <- ranef(model1.3)[[1]][[1]] # Predicted intercepts
-res.hat <- residuals(model1.3) # Estimated residuals
+model1.4 = lmer(Tree.growth~DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large+(DBH.year.0+Treatment+Large+DBH.year.0:Large+Treatment:Large|Plot), data = DBHpositiverm)
+summary(model1.4)
+y.hat <- fitted(model1.4) # Fitted values
+int.hat <- ranef(model1.4)[[1]][[1]] # Predicted intercepts
+res.hat <- residuals(model1.4) # Estimated residuals
 tss = sum((DBHpositiverm$Tree.growth-mean(DBHpositiverm$Tree.growth))^2) # TSS
 rss = sum((DBHpositiverm$Tree.growth-y.hat)^2) # RSS
 (tss-rss)/tss # R^2 = 0.5126373
