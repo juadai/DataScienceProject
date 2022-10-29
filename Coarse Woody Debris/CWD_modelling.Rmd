@@ -9,6 +9,8 @@ setwd("~/Desktop/capstone/analysis/Juan/CWD")
 library(MASS)
 library(survival)
 library(fitdistrplus)
+library(lme4)
+library(hnp)
 
 CWDdata = read.csv("output.csv")
 CWDdata[is.na(CWDdata)] <- 0
@@ -40,16 +42,51 @@ CWDdatarm3 = CWDdata[-c(3),]
 The scale-location plot shows an increasing trend, it states the heteroskedasticity, that is the spread of the residuals is not equal, and the cook’s distance shows that the point 3 are a significant influential point. Treatment radial is statistically significant in this case, and treatment Gap is not. the outstanding outliers become 8,9,12, besides, QQplot and scale location plots state that violation of the model assumption, even though the Gap treatment become significant now, and AIC is smaller than before.
 ```{r guassian_remove_plot3, echo=FALSE}
 #guassian model + plot3 removed
-guass.model = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
-summary(guass.model)
+#CWDdatarm3 = CWDdata[-c(3,12),]
+guas.model=fitdist(CWDdatarm3$difference, "norm")
+guas.model
+guas.mean=guas.model$estimate[1]
+guas.sd =guas.model$estimate[2]
+plot(guas.model)
 
+n=length(CWDdatarm3$difference)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnorm(samp.pct,guas.mean, guas.sd), y=sort(CWDdatarm3$difference), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Guassian')
+abline(0,1,col="red")
+
+
+linear.model = lm(difference ~ treatment, data = CWDdatarm3)
+summary(linear.model)
+guass.model = glm(difference ~ treatment , family = gaussian, data = CWDdatarm3)
+hnp(guass.model, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Gaussian model", pch = 4)
+summary(guass.model)
+pre <- predict(guass.model, data = CWDdatarm3)
+rsq <- cor(CWDdatarm3$difference, pre)^2
+rsq
 
 par(mfrow = c(2,2))
 plot(guass.model)
 
 pure.guass.model <- glm(difference ~ 1 , family = gaussian, data = CWDdatarm3)
 anova( pure.guass.model, guass.model, test = "F")
+
+library(msme)
+P__disp(guass.model)
 # the plot here shows that the plot 8,9,12 are always outliers, since the F-stat is <0.05, we will reject the null at 5% significance level, so the treatment is useful in predicting the difference, both of them are positive, so an increasing in the difference is indicated
+
+guass.model2 = glm(year.6 ~ year.0 + treatment , family = gaussian, data = CWDdatarm3)
+summary(guass.model2)
+pre <- predict(guass.model2, data = CWDdatarm3)
+rsq <- cor(CWDdatarm3$difference, pre)^2
+rsq
+
+par(mfrow = c(2,2))
+plot(guass.model2)
+
+pure.guass.model2 <- glm(difference ~ 1 , family = gaussian, data = CWDdatarm3)
+anova( pure.guass.model2, guass.model2, test = "F")
+
+
 ```
 
 
@@ -77,8 +114,13 @@ abline(0,1,col="red")
 #fit the model
 model0 = glm(new_abs_diff ~ treatment, family = poisson, data = CWDdatarm3)
 summary(model0)
+hnp(model0, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Poisson model", pch = 4)
 par(mfrow = c(2,2))
 plot(model0)
+
+pre <- predict(model0, data = CWDdatarm3)
+rsq <- cor(new_abs_diff, pre)^2
+rsq
 #goodness of fit
 qchisq(0.95,8)
 library(msme)
@@ -95,6 +137,14 @@ qchisq(0.95,model1$df.residual)
 library(msme)
 P__disp(model1)
 
+model.pois <- glm(year.6~ year.0 + treatment, family = poisson, data = CWDdatarm3)
+summary(model.pois)
+par(mfrow = c(2,2))
+plot(model.pois)
+
+pre <- predict(model.pois, data = CWDdatarm3)
+rsq <- cor(new_abs_diff, pre)^2
+rsq
 
 ```
 
@@ -118,15 +168,36 @@ abline(0,1,col="red")
 #fit the model
 model2 = glm.nb(new_abs_diff ~ treatment, data = CWDdatarm3)
 summary(model2)
+hnp(model2, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Negative Binomial model", pch = 4)
+
+
 par(mfrow = c(2,2))
 plot(model2)
 #goodness of fit
 qchisq(0.95,8)
 library(msme)
 P__disp(model2)
-# both coefficient is positive and significant, but the pearson coefficient is less than 15.51, so we fail to reject them from this perpective
-```
 
+pre <- predict(model2, data = CWDdatarm3)
+rsq <- cor(new_abs_diff, pre)^2
+rsq
+
+
+pure.nb.model <- glm.nb(new_abs_diff ~ 1 ,  data = CWDdatarm3)
+anova( pure.nb.model, model2, test = "chisq")
+# both coefficient is positive and significant, but the pearson coefficient is less than 15.51, so we fail to reject them from this perpective
+
+
+model.nb = glm.nb(year.6~ year.0 + treatment, data = CWDdatarm3)
+summary(model.nb)
+par(mfrow = c(2,2))
+plot(model.nb)
+
+pre <- predict(model.nb, data = CWDdatarm3)
+rsq <- cor(new_abs_diff, pre)^2
+rsq
+```
+Half-normal plots with simulated envelopes for the deviance residuals from Negative Binomial model
 ## Gamma model fitting
 
 The Gamma also takes no negative values, we first fit the inverse link function, the outliers are 9(Radial), 6(C),11(C), and no significant points are presented, but the normal QQ plot is left-skewed, and the scale-location is showed an increasing trend . All the coefficients from the model are negative but not statistically significant. But the AIC is the lowest among all the models.
@@ -146,6 +217,13 @@ abline(0,1,col="red")
 
 model3 = glm(new_abs_diff ~ treatment, family = Gamma(link = "inverse"), data = CWDdatarm3)
 summary(model3)
+hnp(model3, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Gamma model", pch = 4)
+
+
+
+pre <- predict(model3, data = CWDdatarm3)
+rsq <- cor(new_abs_diff, pre)^2
+rsq
 
 par(mfrow = c(2,2))
 plot(model3)
