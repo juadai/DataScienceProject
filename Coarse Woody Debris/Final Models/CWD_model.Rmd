@@ -1,0 +1,93 @@
+---
+title: "CWD_final"
+author: "Juan Dai"
+date: "2022-10-29"
+output: word_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Desktop/capstone/Datascience/DataScienceProject/Coarse Woody Debris/Final Models")
+```
+
+
+```{r library_setting,echo=TRUE}
+library(MASS)
+library(survival)
+library(fitdistrplus)
+library(lme4)
+library(hnp)
+
+CWDdata = read.csv("~/Desktop/capstone/Datascience/DataScienceProject/Coarse Woody Debris/Final Models/dataset/output.csv")
+CWDdata[is.na(CWDdata)] <- 0
+CWDdata$difference = CWDdata$year.6 - CWDdata$year.0
+
+```
+
+
+## visualisation 
+```{r visualisation, echo = TRUE}
+hist(CWDdata$difference)
+plot(CWDdata$difference, col = factor(CWDdata$treatment))
+legend("topleft", legend = c("Gap", "Control", "Radial"), col=factor(CWDdata$treatment), pch=1)
+boxplot(CWDdata$difference~CWDdata$treatment, xlab="Treatment", ylab="CWD difference", main="CWD difference against different treatments")
+
+```
+
+## Gussian model fitting
+reform data with following two precedures:
+(1)adding a constant.
+(2)removal of plot 3; 
+```{r data_redefinition, echo=FALSE}
+CWDdata["abs_diff"] = CWDdata["difference"] + abs(min(CWDdata["difference"])) + 1
+CWDdatarm3 = CWDdata[-c(3),]
+```
+
+
+## Negative binomial fitting
+```{r negative_binomial, echo = TRUE}
+# model using negative binomial + abs_diff
+#Negative Binomial GLM
+new_abs_diff <- ceiling(CWDdatarm3$abs_diff) # scale it to fit the poisson model
+#visualisation and test if the data is poisson
+nb.model1=fitdist(new_abs_diff, "nbinom")
+nb.model1
+nb.size=nb.model1$estimate[1]
+nb.mu = nb.model1$estimate[2]
+nb.prob=nb.size/(nb.size+nb.mu) 
+plot(nb.model1)
+
+n=length(new_abs_diff)
+samp.pct <- (1:n-0.5)/n
+qqplot(x=qnbinom(samp.pct,nb.size, nb.prob), y=sort(new_abs_diff), xlab = 'Theoretical quantiles', ylab = 'Empirical quantiles', main='Q-Q plot Negative Binomial')
+abline(0,1,col="red")
+#fit the model
+model2 = glm.nb(new_abs_diff ~ treatment, data = CWDdatarm3)
+summary(model2)
+hnp(model2, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Coarse Woody Debris: Half-Normal Plot", pch = 4)
+
+plot(residuals(model2) ~ predict(model2,type="response"), xlab="Fitted values", ylab="Deviance residuals", main="Coarse Woody Debris: Residuals vs Fitted")
+abline(0,0)
+
+par(mfrow = c(2,2))
+plot(model2)
+#goodness of fit
+qchisq(0.95,8)
+library(msme)
+P__disp(model2)
+
+pre <- predict(model2, data = CWDdatarm3)
+rsq <- cor(new_abs_diff, pre)^2
+rsq
+
+
+pure.nb.model <- glm.nb(new_abs_diff ~ 1 ,  data = CWDdatarm3)
+anova( pure.nb.model, model2, test = "chisq")
+# both coefficient is positive and significant, but the pearson coefficient is less than 15.51, so we fail to reject them from this perpective
+
+
+model.nb = glm.nb(year.6~ year.0 + treatment, data = CWDdatarm3)
+summary(model.nb)
+par(mfrow = c(2,2))
+plot(model.nb)
+
+```
