@@ -25,8 +25,8 @@ The build models for following three hypothesis group:
 3. Coarse Woody Deris
 
 Under each hypothesis family, the folder contains two sub-folders:
-1. Model development (This folder contians all thorogh details about how we build and select our best models)
-2. Final model (This folder contains the final models for each hypotheis family, and some visualisations before or after the modelling)
+1. **_Model development_** (This folder contians all thorogh details about how we build and select our best models)
+2. **_Final model_** (This folder contains the final models for each hypotheis family, and some visualisations before or after the modelling)
 
 
 The hypothesis family for Tree Hollows is not able to be modeled due to lack of quantified records.
