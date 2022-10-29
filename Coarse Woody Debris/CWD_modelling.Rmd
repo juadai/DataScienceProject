@@ -168,8 +168,10 @@ abline(0,1,col="red")
 #fit the model
 model2 = glm.nb(new_abs_diff ~ treatment, data = CWDdatarm3)
 summary(model2)
-hnp(model2, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Negative Binomial model", pch = 4)
+hnp(model2, xlab = "Half-normal scores", ylab = "Deviance residuals", main = "Coarse Woody Debris: Half-Normal Plot", pch = 4)
 
+plot(residuals(model2) ~ predict(model2,type="response"), xlab="Fitted values", ylab="Deviance residuals", main="Coarse Woody Debris: Residuals vs Fitted")
+abline(0,0)
 
 par(mfrow = c(2,2))
 plot(model2)
