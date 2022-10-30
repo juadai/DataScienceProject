@@ -199,3 +199,11 @@ AIC(richness_Y6_02)
 summary(richness_Y6_02)
 
 
+#########################
+# Final selected  model #
+#########################
+
+summary(richness_Y3_02)
+
+
+

@@ -144,3 +144,20 @@ R2
 
 
 
+#########################
+# Final selected models #
+#########################
+
+# Large Forb / Herb
+summary(LF_m4)
+
+# Medium Tufted Grass
+summary(MTG_m4)
+
+
+# Medium Non-Tufted Grass
+summary(MNTG_m4)
+
+
+
+
