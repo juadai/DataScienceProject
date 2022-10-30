@@ -1,0 +1,81 @@
+﻿Tree Number,Year,Alive,DBH,Large?,Tree Class,Hollows Class 1,Hollows Class 2,Hollows Class 3,Notes,,,Circumference originally recorded
+225,0,,36.60563691,Yes,6,0,0,0,Previously C1,,,115
+226,0,,35.96901714,Yes,4,0,0,0,Previously C2,,,113
+228,0,,42.01690498,Yes,5,0,0,0,Previously C3,,,132
+227,0,,42.97183463,Yes,5,0,0,0,Previously C4,,,135
+229,0,,38.51549623,Yes,4,0,0,0,Previously C5,,,121
+232,0,,40.42535555,Yes,5,0,0,0,Previously C6,,,127
+233,0,,39.47042589,Yes,4,1,0,0,Previously C7,,,124
+235,0,,49.01972247,Yes,5,0,0,0,Previously C8,,,154
+236,0,,42.65352475,Yes,5,0,0,0,Previously C9,,,134
+237,0,,44.24507418,Yes,5,0,0,0,Previously C10,,,139
+224,0,,38.51549623,Yes,4,0,0,0,Previously C11,Change to 224,,121
+222,0,,40.42535555,Yes,5,0,0,0,Previously C12,,,127
+223,0,,40.10704566,Yes,5,1,0,0,Previously C13,,,126
+239,0,,36.9239468,Yes,4,0,0,0,Previously C14,Change to 239 (only year 6 number not reecorded at year 0),,116
+238,0,,38.51549623,Yes,4,0,0,0,Previously C15,,,121
+221,0,,37.24225668,Yes,4,0,0,0,Previously C16,,,117
+231,0,,42.01690498,Yes,5,0,0,0,Previously C17,,,132
+234,0,,37.56056657,Yes,4,0,0,0,Previously C18,,,118
+240,0,,36.9239468,Yes,4,0,0,0,Previously C19,,,116
+230,0,,34.05915782,Yes,4,0,0,0,Previously C20,,,107
+521,0,,25.3,No,2,,,,No corresponding number on the Hollows sheet,,,
+523,0,,22.5,No,2,,,,No corresponding number on the Hollows sheet,,,
+524,0,,23.5,No,2,,,,No corresponding number on the Hollows sheet,,,
+526,0,,21.5,No,2,,,,No corresponding number on the Hollows sheet,,,
+528,0,,24,No,2,,,,No corresponding number on the Hollows sheet,,,
+531,0,,28.1,No,2,,,,No corresponding number on the Hollows sheet,,,
+532,0,,24.3,No,2,,,,No corresponding number on the Hollows sheet,,,
+533,0,,29.5,No,2,,,,No corresponding number on the Hollows sheet,,,
+534,0,,27,No,2,,,,No corresponding number on the Hollows sheet,,,
+537,0,,25.5,No,2,,,,No corresponding number on the Hollows sheet,,,
+522,0,,34.3,No,3,0,0,0,,,,
+525,0,,33.6,No,3,0,0,0,,,,
+527,0,,32.2,No,3,0,0,0,,,,
+529,0,,32.1,No,3,0,0,1,,,,
+530,0,,31.8,No,3,0,0,0,,,,
+535,0,,30.7,No,3,0,0,0,,,,
+536,0,,33.3,No,3,0,0,0,,,,
+538,0,,31,No,3,0,0,0,,,,
+539,0,,30.9,No,3,0,0,0,,,,
+540,0,,33.2,No,3,0,0,0,,,,
+221,6,Yes,38.9,Yes,4,0,,,,,,
+222,6,Yes,42.4,Yes,5,0,,,,,,
+223,6,Yes,39.9,Yes,4,0,,,,,,
+224,6,Yes,40.2,Yes,5,0,,,,,,
+225,6,Yes,52,Yes,6,0,,,,,,
+226,6,Yes,36.6,Yes,4,0,,,,,,
+227,6,Yes,41.6,Yes,5,0,,,,,,
+228,6,Yes,43.7,Yes,5,0,,,,,,
+229,6,Yes,43.3,Yes,5,0,,,,,,
+230,6,Yes,34.1,Yes,4,0,,,,,,
+231,6,Yes,39.9,Yes,4,0,,,,,,
+232,6,Yes,41.7,Yes,5,0,,,,,,
+233,6,Yes,37.8,Yes,4,0,,,,,,
+234,6,Yes,39.2,Yes,4,0,,,,,,
+235,6,Yes,51,Yes,6,0,,,,,,
+236,6,Yes,43.2,Yes,5,0,,,,,,
+237,6,Yes,46,Yes,5,0,,,,,,
+238,6,Yes,39.2,Yes,4,0,,,,,,
+239,6,Yes,36.4,Yes,4,0,,,,,,
+240,6,Yes,38.3,Yes,4,,,,Hollows data not available,,,
+521,6,Yes,26.6,No,3,0,,,,,,
+522,6,Yes,35.7,No,4,0,,,,,,
+523,6,Yes,23.7,No,3,0,,,,,,
+524,6,Yes,25,No,3,0,,,,,,
+525,6,Yes,35.3,No,4,0,,,,,,
+526,6,Yes,21.8,No,3,0,,,,,,
+527,6,Yes,33.7,No,4,0,,,,,,
+528,6,Yes,24.5,No,3,0,,,,,,
+529,6,Yes,32.6,No,4,0,,,,,,
+530,6,Yes,32.6,No,4,0,,,,,,
+531,6,Yes,28.6,No,3,0,,,,,,
+532,6,Yes,24.8,No,3,0,,,,,,
+533,6,Yes,30,No,4,0,,,,,,
+534,6,Yes,27.8,No,3,0,,,,,,
+535,6,Yes,32.3,No,4,0,,,,,,
+536,6,Yes,34.1,No,4,0,,,,,,
+537,6,Yes,26.2,No,3,0,,,,,,
+538,6,Yes,31.4,No,4,0,,,,,,
+539,6,Yes,31.2,No,4,0,,,,,,
+540,6,Yes,34.5,No,4,0,,,,,,

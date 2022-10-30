@@ -1,0 +1,81 @@
+﻿Tree Number,Year,Alive,DBH,Large?,Tree Class,Hollows Class 1,Hollows Class 2,Hollows Class 3,Notes,
+60,0,,42.9,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously C1
+59,0,,44,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously C3
+54,0,,43.6,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously C5
+55,0,,50.2,Yes,6,0,0,0,No corresponding number on the Hollows sheet,Previously C6
+244,0,,52.9,Yes,6,0,0,0,No corresponding number on the Hollows sheet,Previously C7 Then 52
+51,0,,36.8,Yes,4,0,0,0,No corresponding number on the Hollows sheet,Previously C8
+50,0,,45,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously C9
+49,0,,35.3,Yes,4,0,0,0,No corresponding number on the Hollows sheet,Previously C10
+53,0,,40.4,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously C11
+42,0,,42.7,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously C12
+41,0,,51.5,Yes,6,0,0,0,No corresponding number on the Hollows sheet,Previously G1
+43,0,,43,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously G2
+44,0,,41.4,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously G4
+46,0,,57.7,Yes,6,0,1,0,No corresponding number on the Hollows sheet,Previously G5
+47,0,,44.8,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously G6
+48,0,,45.4,Yes,5,0,0,1,No corresponding number on the Hollows sheet,Previously G7
+45,0,,39,Yes,4,0,0,0,No corresponding number on the Hollows sheet,Previously G8
+57,0,,46,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously G9
+56,0,,40,Yes,5,0,0,0,No corresponding number on the Hollows sheet,Previously G10
+58,0,,52,Yes,6,0,0,0,No corresponding number on the Hollows sheet,Previously G12
+270,0,,28,No,2,0,0,0,No corresponding number on the Hollows sheet,
+271,0,,28.1,No,2,0,0,0,No corresponding number on the Hollows sheet,
+272,0,,25.1,No,2,0,0,0,No corresponding number on the Hollows sheet,
+278,0,,24.8,No,2,0,0,0,No corresponding number on the Hollows sheet,
+249,0,,25.3,No,2,0,0,0,No corresponding number on the Hollows sheet,Previously 279
+281,0,,26.6,No,2,0,0,0,No corresponding number on the Hollows sheet,
+282,0,,26.4,No,2,0,0,0,No corresponding number on the Hollows sheet,
+284,0,,28.7,No,2,0,0,0,No corresponding number on the Hollows sheet,
+286,0,,26.8,No,2,0,0,0,No corresponding number on the Hollows sheet,
+287,0,,25.5,No,2,0,0,0,No corresponding number on the Hollows sheet,
+269,0,,33.7,No,3,0,0,0,,
+273,0,,31.7,No,3,0,0,0,,
+274,0,,35.9,No,3,0,0,0,,
+275,0,,33,No,3,0,0,0,,
+276,0,,31.1,No,3,0,0,0,,
+277,0,,39.5,No,3,0,0,0,,
+280,0,,35.9,No,3,0,0,0,,
+283,0,,30.9,No,3,0,0,0,,
+285,0,,32.2,No,3,0,0,0,,
+288,0,,33.2,No,3,0,0,0,,
+59,6,Yes,48.9,Yes,6,0,0,0,,
+58,6,Yes,43.9,Yes,5,0,0,0,,
+283,6,Yes,33,No,4,0,0,0,,
+284,6,Yes,30,No,4,0,0,0,,
+282,6,Yes,27.9,No,3,0,0,0,,
+60,6,Yes,45.2,Yes,5,0,0,0,,
+42,6,Yes,40,Yes,5,0,0,0,,
+269,6,Yes,36.1,No,4,0,0,0,,
+270,6,Yes,29.8,No,3,0,0,0,,
+271,6,Yes,30,No,4,0,0,0,,
+272,6,Yes,27,No,3,0,0,0,,
+273,6,Yes,32.9,No,4,0,0,0,,
+56,6,Yes,42,Yes,5,0,0,0,,
+281,6,Yes,28.3,No,3,0,0,0,,
+57,6,Yes,49.3,Yes,5,0,0,0,,
+280,6,Yes,37.8,No,4,0,0,0,,
+276,6,Yes,32.2,No,4,0,0,0,,
+277,6,Yes,41.8,No,5,0,0,0,Class 5 but not a 'large' tree,
+48,6,Yes,48,Yes,5,0,0,1,,
+47,6,Yes,45.8,Yes,5,0,0,0,,
+46,6,Yes,57.8,Yes,6,0,0,0,,
+44,6,Yes,42,Yes,5,0,0,0,,
+43,6,Yes,43.8,Yes,5,0,0,0,,
+274,6,Yes,38.3,No,4,0,0,0,,
+41,6,Yes,53.2,Yes,6,0,0,0,,
+53,6,Yes,42.5,Yes,5,0,0,0,,
+55,6,Yes,53.3,Yes,6,0,0,0,,
+285,6,Yes,34.1,No,4,0,0,0,,
+288,6,Yes,34,No,4,0,0,0,,
+287,6,Yes,26.3,No,3,0,0,0,,
+49,6,Yes,38.7,Yes,4,0,0,0,,
+50,6,Yes,47,Yes,5,0,0,0,,
+51,6,Yes,38.9,Yes,4,0,0,0,,
+54,6,Yes,44.2,Yes,5,0,0,0,,
+249,6,Yes,28.2,No,3,0,0,0,Previously 279,
+244,6,Yes,54.9,Yes,6,1,0,0,Previously 52,
+45,6,Yes,40.5,Yes,5,,,,No corresponding number on the Hollows sheet,
+275,6,Yes,34,No,4,,,,No corresponding number on the Hollows sheet,
+278,6,Yes,25.2,No,3,,,,No corresponding number on the Hollows sheet,
+286,6,Yes,27.7,No,3,,,,No corresponding number on the Hollows sheet,

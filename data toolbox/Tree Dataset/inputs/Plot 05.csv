@@ -1,0 +1,75 @@
+﻿Tree Number,Year,Alive,DBH,Large?,Tree Class,Hollows Class 1,Hollows Class 2,Hollows Class 3,Notes
+173,0,,38.9,Yes,,,,,No corresponding number on the Hollows sheet
+986,0,,46.2,Yes,,,,,No corresponding number on the Hollows sheet
+463,0,,28,No,2,,,,
+464,0,,23.5,No,2,,,,
+465,0,,23.7,No,2,,,,
+467,0,,29.4,No,2,,,,
+471,0,,21,No,2,,,,
+472,0,,26.6,No,2,,,,
+474,0,,28.5,No,2,,,,
+476,0,,22,No,2,,,,
+477,0,,23.5,No,2,,,,
+480,0,,24.3,No,2,,,,
+461,0,,31.2,No,3,0,0,0,
+462,0,,33.5,No,3,0,0,0,
+466,0,,30.5,No,3,0,0,0,
+468,0,,33.9,No,3,0,0,0,
+469,0,,37.4,No,3,0,0,0,
+470,0,,30.9,No,3,0,0,0,
+473,0,,35.9,No,3,0,0,0,
+475,0,,31.1,No,3,0,0,0,
+478,0,,31.2,No,3,0,0,0,
+479,0,,34.3,No,3,0,0,0,
+187,0,,63.7,Yes,,1,0,0,No corresponding number on the DBH sheet
+172,0,,39.7,Yes,,0,0,0,No corresponding number on the DBH sheet
+171,0,,34,Yes,,0,0,0,No corresponding number on the DBH sheet
+188,0,,32.9,Yes,,0,0,0,No corresponding number on the DBH sheet
+175,0,,40,Yes,,0,0,0,No corresponding number on the DBH sheet
+174,0,,99.3,Yes,,1,1,7,No corresponding number on the DBH sheet
+176,0,,81.8,Yes,,0,0,4,No corresponding number on the DBH sheet
+177,0,,52.2,Yes,,2,4,2,No corresponding number on the DBH sheet
+179,0,,51.9,Yes,,7,2,2,No corresponding number on the DBH sheet
+180,0,,39.2,Yes,,0,0,0,No corresponding number on the DBH sheet
+181,0,,41.1,Yes,,0,0,0,No corresponding number on the DBH sheet
+182,0,,42,Yes,,0,0,0,No corresponding number on the DBH sheet
+989,0,,39.8,Yes,,0,0,0,No corresponding number on the DBH sheet
+184,0,,26.8,Yes,,0,0,0,No corresponding number on the DBH sheet
+185,0,,24.9,Yes,,0,0,0,No corresponding number on the DBH sheet
+186,0,,57.3,Yes,,3,0,1,No corresponding number on the DBH sheet
+171,6,Yes,36.9,Yes,4,0,0,0,
+172,6,Yes,32.9,Yes,4,0,0,0,
+173,6,Yes,41.7,Yes,,,,,No corresponding number on the Hollows sheet
+174,6,Yes,100,Yes,11,2,1,7,
+175,6,Yes,41.7,Yes,5,0,0,0,
+176,6,Yes,80.7,Yes,9,2,1,4,
+177,6,Yes,52.8,Yes,,2,5,0,
+179,6,Yes,52.7,Yes,6,1,1,2,
+180,6,Yes,41.2,Yes,5,0,0,0,
+181,6,Yes,44.1,Yes,5,0,0,0,
+182,6,Yes,44.1,Yes,5,0,0,0,
+989,6,Yes,44.5,Yes,4,0,0,0,183 retagged as 989
+184,6,Yes,43.4,Yes,5,0,0,0,
+185,6,Yes,38.9,Yes,4,0,0,0,
+186,6,Yes,60.8,Yes,7,2,0,2,
+187,6,Yes,63.1,Yes,7,0,0,0,
+188,6,Yes,38.1,Yes,4,0,0,0,
+461,6,Yes,32.9,No,,0,0,0,
+462,6,Yes,36.1,No,4,0,0,0,
+463,6,Yes,29.1,No,3,0,0,0,
+464,6,Yes,24.5,No,3,0,0,0,
+465,6,Yes,25.3,No,3,0,0,0,
+466,6,Yes,31.3,No,4,0,0,0,
+467,6,Yes,30.2,No,4,0,0,0,
+468,6,Yes,35.1,No,4,0,0,0,
+469,6,Yes,39.6,No,4,0,0,0,
+470,6,Yes,34.9,No,4,0,0,0,
+472,6,Yes,27.5,No,3,0,0,0,
+473,6,Yes,37.9,No,4,0,0,0,
+474,6,Yes,30.3,No,4,0,0,0,
+475,6,Yes,35.5,No,4,0,0,0,
+476,6,Yes,24.1,No,3,0,0,0,
+478,6,Yes,45.4,No,5,0,0,0,
+479,6,Yes,34.9,No,4,0,0,0,
+480,6,Yes,25.8,No,3,0,0,0,
+986,6,Yes,44.5,,,,,,178 retagged as 986. No hollow data recorded
