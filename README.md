@@ -10,11 +10,11 @@ This the repository for the data science project
 |Yuhong Guo	             |yuhong.guo@student.unimelb.edu.au               |
 |Yiran Yao               |yiran.yao2@student.unimelb.edu.au               |
 
-Project Supervision
-Chris Baker
-Michael Kirley
-Joyce Zhang 
-Marika Benetti-Hille 
+|Project Supervision |
+|Chris Baker         |
+|Michael Kirley      |
+|Joyce Zhang         |
+|Marika Benetti-Hille|
 
 
 ## Overview of the repository
