@@ -8,7 +8,7 @@ This the repository for the data science project
 |Chayanit Jaroonsophonsak|chayanit.jaroonsophonsak@student.unimelb.edu.au |
 |Juan Dai                |juan.dai@student.unimelb.edu.au                 |
 |Yuhong Guo	             |yuhong.guo@student.unimelb.edu.au               |
-|Yiran Yao.              |yiran.yao2@student.unimelb.edu.au               |
+|Yiran Yao               |yiran.yao2@student.unimelb.edu.au               |
 
 Project Supervision
 Chris Baker
